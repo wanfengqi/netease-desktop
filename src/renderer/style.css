@@ -207,8 +207,8 @@ body {
   flex:0 0 auto; height:var(--player-h);
   background:var(--bg-2); border-top:1px solid var(--border);
   display:flex; align-items:center; gap:18px;
-  /* 右侧留白：音量区不顶到应用边界 */
-  padding:0 34px 0 18px;
+  /* 右侧留白：音量区不顶到应用边界（用户两次强调；48px 保证 thumb 拉满也不贴边） */
+  padding:0 48px 0 18px;
   transition:background .25s ease;
 }
 .now { display:flex; align-items:center; gap:10px; width:210px; flex:0 0 auto; }
@@ -220,6 +220,7 @@ body {
 .controls { display:flex; align-items:center; gap:6px; flex:0 0 auto; }
 .cbtn {
   width:34px; height:34px; border:0; border-radius:50%;
+  flex:0 0 auto;               /* 禁止 flex 收缩，保持正圆 */
   background:transparent; color:var(--text); cursor:pointer;
   font-size:14px; display:grid; place-items:center;
   transition:background .15s,transform .1s; font-family:inherit;
@@ -243,7 +244,9 @@ body {
 .bar:hover .bar-dot { transform:translate(-50%,-50%) scale(1); }
 
 .vol { display:flex; align-items:center; gap:6px; width:130px; flex:0 0 auto; }
-.vol input[type=range] { flex:1; }
+/* min-width:0 —— Chromium 的 range input 默认 min-width≈129px，不设的话 flex:1
+   压不下去，滑条会溢出 .vol 容器、把右侧留白吃掉（用户反馈的"贴边"真因） */
+.vol input[type=range] { flex:1; min-width:0; }
 
 /* ---------------- 皮肤面板 ---------------- */
 .theme-overlay {
@@ -452,7 +455,7 @@ body {
 
 /* ---- 左侧：封面 + 信息 + 进度 + 控制 ---- */
 .np-left {
-  width:340px; flex:0 0 auto;
+  width:380px; flex:0 0 auto;   /* 380px：容纳 mode/prev/play/next/fav/vol 六个控件（第三轮加了 npFav） */
   display:flex; flex-direction:column; align-items:center; gap:16px;
 }
 .np-cover-wrap {
@@ -488,6 +491,7 @@ body {
 .np-controls { display:flex; align-items:center; gap:14px; width:100%; justify-content:center; }
 .np-cbtn {
   width:40px; height:40px; border:0; border-radius:50%;
+  flex:0 0 auto;               /* 禁止 flex 收缩，否则主按钮会被压成竖椭圆 */
   background:transparent; color:var(--text); cursor:pointer;
   font-size:16px; display:grid; place-items:center;
   transition:background .15s,transform .1s;
@@ -502,7 +506,7 @@ body {
 .np-cbtn.np-main:hover { background:var(--accent-2); }
 .np-cbtn.np-sm { width:30px; height:30px; font-size:13px; }
 .np-vol { display:flex; align-items:center; gap:6px; width:120px; }
-.np-vol input[type=range] { flex:1; }
+.np-vol input[type=range] { flex:1; min-width:0; }
 
 /* ---- 右侧：歌词 ---- */
 .np-right { flex:1; min-width:0; display:flex; flex-direction:column; }
@@ -535,6 +539,9 @@ body {
 @media (max-width: 1000px) {
   .np-left { width:280px; }
   .np-cover-wrap { width:200px; height:200px; }
+  /* 窄窗口下歌词页隐藏重复的音量控件（底栏已有），否则 np-controls 六个控件
+     挤在 280px 里会把主按钮压成竖椭圆（flex-shrink 即使禁了也会溢出出界） */
+  .np-vol { display:none; }
 }
 
 /* ============================================================

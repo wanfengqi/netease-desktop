@@ -35,10 +35,21 @@ const Player = (() => {
   const audioEl = () => audio || (audio = el('audio'));
 
   // ---------------------------------------------------------------- 基本控制
+  /**
+   * play() 的报错是否属于"切歌副作用"而非真故障：
+   * 快速切歌时 audio.src 被替换，旧 play() promise 被打断抛 AbortError
+   * （The play() request was interrupted by a new load request）——这不是错误，
+   * 弹窗只会吓到用户。只有非 Abort 的失败（无版权/网络/解码）才值得提示。
+   */
+  function isPlayAbort(e) {
+    if (!e) return true;
+    return e.name === 'AbortError' || /interrupted|abort/i.test(e.message || '');
+  }
+
   function toggle() {
     var a = audioEl();
     if (!a.src) { if (state.queue.length) playAt(state.queue.length ? 0 : -1); return; }
-    if (a.paused) a.play().catch(function (e) { toast('播放失败：' + e.message); });
+    if (a.paused) a.play().catch(function (e) { if (!isPlayAbort(e)) toast('播放失败：' + e.message); });
     else a.pause();
   }
 
@@ -144,7 +155,7 @@ const Player = (() => {
     eqPrepareForSong(s);
     a.src = url;
     a.volume = state.volume;
-    try { await a.play(); } catch (e) { if (!opts.silent) toast('播放失败：' + e.message); }
+    try { await a.play(); } catch (e) { if (!opts.silent && !isPlayAbort(e)) toast('播放失败：' + e.message); }
     eqPaint();   // 换歌后刷新面板上的音源支持提示
 
     recordRecent(s);
