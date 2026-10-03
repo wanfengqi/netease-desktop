@@ -1,4 +1,4 @@
-const { app, BrowserWindow, ipcMain, Tray, Menu, globalShortcut, nativeImage, dialog, shell, net } = require('electron');
+const { app, BrowserWindow, ipcMain, Tray, Menu, globalShortcut, nativeImage, dialog, shell, screen } = require('electron');
 const path = require('path');
 const fs = require('fs');
 const { spawn } = require('child_process');
@@ -10,6 +10,9 @@ const IS_DEV = !app.isPackaged;
 // 会导致开发版与打包版读到两份不同的配置（收藏/皮肤/cookie 不同步）。
 // 这里统一成 netease-desktop。
 app.setName('netease-desktop');
+// Windows 上必须有 AppUserModelId，系统"媒体控制中心"(SMTC) 才会把我们的
+// 封面/歌名/控制按钮显示成独立的应用，而不是并到 Electron 里去。
+app.setAppUserModelId('com.dsh.netease.desktop');
 let API_PORT = 3000;
 let apiProc = null;
 let mainWin = null;
@@ -112,11 +115,41 @@ async function waitForApi(timeoutMs = 25000) {
 }
 
 // ------------------------------------------------------------------ 主窗口
+/** 用当前皮肤的 --bg 当窗口底色，避免启动瞬间闪一下白底 */
+function themeBackground() {
+  try {
+    const t = loadThemes();
+    const cur = (t.custom && t.custom[t.current]) || null;
+    const bg = cur && cur.vars && cur.vars['--bg'];
+    if (bg && /^#|^rgb/.test(bg)) return bg;
+  } catch {}
+  return '#f6f7f9';
+}
+
+/** 校验记住的窗口位置还在可见区域内（拔掉显示器的情况） */
+function safeBounds(b) {
+  if (!b || typeof b.width !== 'number' || typeof b.height !== 'number') return null;
+  const out = { width: Math.max(900, b.width), height: Math.max(600, b.height) };
+  try {
+    const area = screen.getPrimaryDisplay().workArea;
+    const all = screen.getAllDisplays().some(d =>
+      b.x >= d.workArea.x - 40 && b.x < d.workArea.x + d.workArea.width &&
+      b.y >= d.workArea.y - 40 && b.y < d.workArea.y + d.workArea.height);
+    if (typeof b.x === 'number' && typeof b.y === 'number' && all) { out.x = b.x; out.y = b.y; }
+  } catch {}
+  return out;
+}
+
 function createMainWindow() {
+  const bounds = safeBounds(loadConfig().windowBounds);
   mainWin = new BrowserWindow({
-    width: 1080, height: 700, minWidth: 860, minHeight: 560,
+    width: bounds ? bounds.width : 1080,
+    height: bounds ? bounds.height : 700,
+    x: bounds && bounds.x,
+    y: bounds && bounds.y,
+    minWidth: 900, minHeight: 600,
     frame: false,
-    backgroundColor: '#f6f7f9',
+    backgroundColor: themeBackground(),
     icon: path.join(__dirname, 'renderer', 'icon.png'),
     show: false,
     webPreferences: {
@@ -129,6 +162,20 @@ function createMainWindow() {
   mainWin.loadFile(path.join(__dirname, 'renderer', 'index.html'));
   mainWin.once('ready-to-show', () => mainWin.show());
   mainWin.on('closed', () => { mainWin = null; });
+
+  // 记住窗口大小与位置（主流播放器都这样，重开不用再摆一次）
+  let bt = null;
+  const rememberBounds = () => {
+    clearTimeout(bt);
+    bt = setTimeout(() => {
+      try {
+        if (!mainWin || mainWin.isDestroyed() || mainWin.isMaximized() || mainWin.isMinimized() || mainWin.isFullScreen()) return;
+        saveConfig({ windowBounds: mainWin.getBounds() });
+      } catch {}
+    }, 600);
+  };
+  mainWin.on('resize', rememberBounds);
+  mainWin.on('move', rememberBounds);
   if (IS_DEV && process.env.DEVTOOLS) mainWin.webContents.openDevTools({ mode: 'detach' });
 }
 

@@ -15,11 +15,13 @@
   </div>
   <div class="tb-drag"></div>
   <div class="tb-actions">
-    <button class="tb-btn" id="btnLyric" title="桌面歌词 (Ctrl+Alt+L)">词</button>
-    <button class="tb-btn" id="btnTheme" title="更换皮肤">🎨</button>
-    <button class="tb-btn" id="btnMin" title="最小化">─</button>
-    <button class="tb-btn" id="btnMax" title="最大化">☐</button>
-    <button class="tb-btn tb-close" id="btnClose" title="关闭">✕</button>
+    <button class="tb-btn" id="btnLyric" data-icon="lyric" title="桌面歌词 (Ctrl+Alt+L)"></button>
+    <button class="tb-btn" id="sleepBtn" data-icon="moon" title="睡眠定时"></button>
+    <button class="tb-btn" id="btnTheme" data-icon="drop" title="更换皮肤"></button>
+    <span class="tb-sep"></span>
+    <button class="tb-btn" id="btnMin" data-icon="min" title="最小化"></button>
+    <button class="tb-btn" id="btnMax" data-icon="max" title="最大化"></button>
+    <button class="tb-btn tb-close" id="btnClose" data-icon="close" title="关闭"></button>
   </div>
 </header>
 
@@ -27,12 +29,35 @@
 <div class="app">
   <!-- 侧边栏 -->
   <aside class="sidebar">
-    <nav class="nav">
-      <div class="nav-item active" data-view="search"><span class="ni">🔍</span>搜索</div>
-      <div class="nav-item" data-view="playlist"><span class="ni">🎵</span>播放列表</div>
-      <div class="nav-item" data-view="favorites"><span class="ni">❤️</span>我的收藏</div>
-      <div class="nav-item" data-view="login"><span class="ni">👤</span>登录</div>
-    </nav>
+    <div class="side-scroll">
+      <div class="side-group">
+        <div class="side-label">在线音乐</div>
+        <nav class="nav">
+          <div class="nav-item active" data-view="search">
+            <span class="ni" data-icon="search"></span><span class="nav-text">搜索</span>
+          </div>
+          <div class="nav-item" data-view="recent">
+            <span class="ni" data-icon="clock"></span><span class="nav-text">最近播放</span>
+          </div>
+        </nav>
+      </div>
+      <div class="side-group">
+        <div class="side-label">我的音乐</div>
+        <nav class="nav">
+          <div class="nav-item" data-view="playlist">
+            <span class="ni" data-icon="list"></span><span class="nav-text">播放列表</span>
+            <span class="pill pill-ghost" id="sideQueueCount">0</span>
+          </div>
+          <div class="nav-item" data-view="favorites">
+            <span class="ni" data-icon="heart"></span><span class="nav-text">我的收藏</span>
+            <span class="pill pill-ghost" id="sideFavCount">0</span>
+          </div>
+          <div class="nav-item" data-view="login">
+            <span class="ni" data-icon="user"></span><span class="nav-text">登录</span>
+          </div>
+        </nav>
+      </div>
+    </div>
     <div class="login-badge" id="loginBadge">未登录</div>
   </aside>
 
@@ -40,6 +65,14 @@
   <main class="content">
     <!-- 搜索 -->
     <section class="view" id="view-search">
+      <div class="searchbar">
+        <div class="q-wrap">
+          <span class="q-ico" data-icon="search"></span>
+          <input id="q" placeholder="搜索歌曲 / 歌手 / 专辑…" autocomplete="off">
+          <div class="q-history hidden" id="qHistory"></div>
+        </div>
+        <button id="btnSearch">搜索</button>
+      </div>
       <div class="source-bar">
         <span class="src-label">音源</span>
         <div class="src-tabs" id="srcTabs">
@@ -48,65 +81,76 @@
         </div>
         <label class="src-hint" id="srcHint">网易云：需登录才能听 VIP 歌曲</label>
       </div>
-      <div class="searchbar">
-        <div class="q-wrap">
-          <input id="q" placeholder="搜索歌曲 / 歌手 / 专辑…" autocomplete="off">
-          <div class="q-history hidden" id="qHistory"></div>
-        </div>
-        <button id="btnSearch">搜索</button>
-      </div>
       <div class="result-tabs" id="resultTabs">
         <button class="rtab active" data-tab="song">单曲</button>
         <button class="rtab" data-tab="playlist">歌单</button>
         <button class="rtab" data-tab="artist">歌手</button>
       </div>
-      <div class="list" id="results">
-        <div class="empty">输入关键词开始搜索</div>
+      <div class="result-bar hidden" id="resultBar">
+        <span class="rb-count" id="resultCount">找到 0 首</span>
+        <div class="rb-actions">
+          <button class="btn-pill" id="btnResPlayAll"><span data-icon="play"></span>播放全部</button>
+          <button class="btn-pill" id="btnResShuffle"><span data-icon="shuffle"></span>随机播放</button>
+        </div>
       </div>
+      <div class="list" id="results"></div>
     </section>
 
     <!-- 歌手主页 -->
     <section class="view hidden" id="view-artist">
-      <div class="ar-head">
-        <button class="btn-ghost" id="btnArBack">← 返回</button>
-        <img class="ar-avatar" id="arAvatar" alt="">
-        <div class="ar-meta">
-          <div class="ar-name" id="arName">—</div>
-          <div class="ar-stats" id="arStats">—</div>
-          <div class="ar-brief" id="arBrief"></div>
+      <div class="hero">
+        <div class="hero-bg" id="arBg"></div>
+        <div class="hero-inner">
+          <button class="btn-icon hero-back" id="btnArBack" data-icon="chevronL" title="返回"></button>
+          <img class="ar-avatar" id="arAvatar" alt="">
+          <div class="hero-meta">
+            <div class="hero-kicker">歌手</div>
+            <div class="ar-name" id="arName">—</div>
+            <div class="ar-stats" id="arStats">—</div>
+            <div class="ar-brief" id="arBrief"></div>
+          </div>
         </div>
       </div>
       <div class="ar-tabs">
-        <button class="artab active" data-ar="album">专辑 <span id="arAlbumCount" class="pill"></span></button>
+        <button class="artab active" data-ar="album">专辑 <span id="arAlbumCount" class="pill">0</span></button>
         <button class="artab" data-ar="song">热门歌曲</button>
       </div>
-      <div class="list" id="arBody"><div class="empty">加载中…</div></div>
+      <div class="list" id="arBody"></div>
     </section>
 
-    <!-- 歌单详情 -->
+    <!-- 歌单 / 专辑详情 -->
     <section class="view hidden" id="view-pl">
-      <div class="pl-head">
-        <button class="btn-ghost" id="btnPlBack">← 返回</button>
-        <img class="pl-cover" id="plCover" alt="">
-        <div class="pl-meta">
-          <div class="pl-name" id="plName">—</div>
-          <div class="pl-info" id="plInfo">—</div>
-          <button class="btn-primary" id="btnPlPlayAll">播放全部</button>
+      <div class="hero">
+        <div class="hero-bg" id="plBg"></div>
+        <div class="hero-inner">
+          <button class="btn-icon hero-back" id="btnPlBack" data-icon="chevronL" title="返回"></button>
+          <img class="pl-cover" id="plCover" alt="">
+          <div class="hero-meta">
+            <div class="hero-kicker">歌单</div>
+            <div class="pl-name" id="plName">—</div>
+            <div class="pl-info" id="plInfo">—</div>
+            <div class="hero-actions">
+              <button class="btn-primary" id="btnPlPlayAll"><span data-icon="play"></span>播放全部</button>
+              <button class="btn-ghost" id="btnPlShuffle"><span data-icon="shuffle"></span>随机播放</button>
+            </div>
+          </div>
         </div>
       </div>
-      <div class="list" id="plSongs"><div class="empty">加载中…</div></div>
+      <div class="list" id="plSongs"></div>
     </section>
 
     <!-- 播放列表 -->
     <section class="view hidden" id="view-playlist">
       <div class="pl-head-bar">
-        <h2 class="vtitle">当前播放列表 <span id="plCount" class="pill">0</span></h2>
+        <h2 class="vtitle">当前播放列表 <span id="plCount" class="pill">0</span>
+          <span class="vtitle-hint">拖动可调整播放顺序</span>
+        </h2>
         <div class="pl-actions">
-          <button class="btn-ghost" id="btnClearQueue">清空列表</button>
-          <button class="btn-primary" id="btnShufflePlay">随机播放</button>
+          <button class="btn-ghost" id="btnClearQueue"><span data-icon="trash"></span>清空列表</button>
+          <button class="btn-primary" id="btnShufflePlay"><span data-icon="shuffle"></span>随机播放</button>
         </div>
       </div>
-      <div class="list" id="plist"><div class="empty">列表为空</div></div>
+      <div class="list" id="plist"></div>
     </section>
 
     <!-- 我的收藏 -->
@@ -114,11 +158,25 @@
       <div class="pl-head-bar">
         <h2 class="vtitle">我的收藏 <span id="favCount" class="pill">0</span></h2>
         <div class="pl-actions">
-          <button class="btn-ghost" id="btnFavClearAll">清空收藏</button>
-          <button class="btn-primary" id="btnFavPlayAll">播放全部</button>
+          <button class="btn-ghost" id="btnFavClearAll"><span data-icon="trash"></span>清空收藏</button>
+          <button class="btn-primary" id="btnFavPlayAll"><span data-icon="play"></span>播放全部</button>
         </div>
       </div>
-      <div class="list" id="favList"><div class="empty">还没有收藏的歌曲<br><span class="hint-sub">在歌曲列表点 ♡ 即可收藏</span></div></div>
+      <div class="list" id="favList"></div>
+    </section>
+
+    <!-- 最近播放 -->
+    <section class="view hidden" id="view-recent">
+      <div class="pl-head-bar">
+        <h2 class="vtitle">最近播放 <span id="recentCount" class="pill">0</span>
+          <span class="vtitle-hint">按播放先后排序，最多保留 200 首</span>
+        </h2>
+        <div class="pl-actions">
+          <button class="btn-ghost" id="btnRecentClear"><span data-icon="trash"></span>清空记录</button>
+          <button class="btn-primary" id="btnRecentPlayAll"><span data-icon="play"></span>播放全部</button>
+        </div>
+      </div>
+      <div class="list" id="recentList"></div>
     </section>
 
     <!-- 登录 -->
@@ -143,7 +201,7 @@
         <div class="login-box">
           <div class="qr-wrap"><img id="qrImg" alt="二维码"><div class="qr-mask" id="qrMask">加载中…</div></div>
           <div class="login-tip" id="loginTip">用网易云音乐 App 扫码登录</div>
-          <button class="btn-ghost" id="btnQrRefresh">刷新二维码</button>
+          <button class="btn-ghost" id="btnQrRefresh"><span data-icon="refresh"></span>刷新二维码</button>
         </div>
       </div>
     </section>
@@ -158,24 +216,28 @@
       <div class="now-title" id="nowTitle">未在播放</div>
       <div class="now-artist" id="nowArtist">—</div>
     </div>
-    <span class="now-expand">⌃</span>
+    <span class="now-expand" data-icon="chevronU"></span>
   </div>
 
   <div class="controls">
-    <button id="btnMode" class="cbtn cbtn-sm" title="列表循环（点击切换）">🔁</button>
-    <button id="btnPrev" class="cbtn">⏮</button>
-    <button id="btnPlay" class="cbtn cbtn-main">▶</button>
-    <button id="btnNext" class="cbtn">⏭</button>
+    <button id="btnMode" class="cbtn cbtn-sm" data-icon="repeat" title="列表循环（点击切换）"></button>
+    <button id="btnPrev" class="cbtn" data-icon="prev" title="上一首"></button>
+    <button id="btnPlay" class="cbtn cbtn-main" data-icon="play" title="播放/暂停 (空格)"></button>
+    <button id="btnNext" class="cbtn" data-icon="next" title="下一首"></button>
   </div>
 
   <div class="progress">
     <span id="tCur">0:00</span>
-    <div class="bar" id="bar"><div class="bar-fill" id="barFill"></div><div class="bar-dot" id="barDot"></div></div>
+    <div class="bar" id="bar">
+      <div class="bar-buf" id="barBuf"></div>
+      <div class="bar-fill" id="barFill"></div>
+      <div class="bar-dot" id="barDot"></div>
+    </div>
     <span id="tDur">0:00</span>
   </div>
 
   <div class="vol">
-    <button id="btnMute" class="cbtn cbtn-sm">🔊</button>
+    <button id="btnMute" class="cbtn cbtn-sm" data-icon="volume" title="静音 (M)"></button>
     <input type="range" id="vol" min="0" max="100" value="70">
   </div>
 </footer>
@@ -188,9 +250,16 @@
   <div class="np-inner">
     <!-- 顶栏 -->
     <div class="np-top">
-      <button class="np-btn" id="npClose" title="收起 (Esc)">⌄</button>
+      <button class="np-btn np-back" id="npClose" title="收起 (Esc)"><span data-icon="chevronD"></span></button>
       <div class="np-top-title" id="npTopTitle">—</div>
-      <button class="np-btn" id="npDesktopLyric" title="桌面歌词">词</button>
+      <div class="np-lyric-tools" title="歌词比声音快/慢时可以微调时轴">
+        <span class="nlt-label" data-icon="text"></span>
+        <button class="nlt-btn" id="npOffsetMinus" title="歌词提前 0.5 秒">−</button>
+        <span class="np-offset" id="npOffsetLabel">0.0s</span>
+        <button class="nlt-btn" id="npOffsetPlus" title="歌词延后 0.5 秒">＋</button>
+        <button class="nlt-btn" id="npOffsetReset" data-icon="refresh" title="重置歌词偏移"></button>
+      </div>
+      <button class="np-btn" id="npDesktopLyric" data-icon="lyric" title="桌面歌词"></button>
     </div>
 
     <!-- 主体：左封面右歌词 -->
@@ -218,12 +287,13 @@
 
         <!-- 控制 -->
         <div class="np-controls">
-          <button class="np-cbtn" id="npMode" title="播放模式">🔁</button>
-          <button class="np-cbtn" id="npPrev" title="上一首">⏮</button>
-          <button class="np-cbtn np-main" id="npPlay" title="播放/暂停">▶</button>
-          <button class="np-cbtn" id="npNext" title="下一首">⏭</button>
+          <button class="np-cbtn" id="npMode" data-icon="repeat" title="播放模式"></button>
+          <button class="np-cbtn" id="npPrev" data-icon="prev" title="上一首"></button>
+          <button class="np-cbtn np-main" id="npPlay" data-icon="play" title="播放/暂停"></button>
+          <button class="np-cbtn" id="npNext" data-icon="next" title="下一首"></button>
+          <button class="np-cbtn np-fav" id="npFav" data-icon="heart" title="收藏"></button>
           <div class="np-vol">
-            <button class="np-cbtn np-sm" id="npMute">🔊</button>
+            <button class="np-cbtn np-sm" id="npMute" data-icon="volume" title="静音"></button>
             <input type="range" id="npVol" min="0" max="100" value="70">
           </div>
         </div>
@@ -232,9 +302,7 @@
       <!-- 歌词 -->
       <div class="np-right">
         <div class="np-lyric-scroll" id="npLyricScroll">
-          <div class="np-lyric-inner" id="npLyricInner">
-            <div class="empty">暂无歌词</div>
-          </div>
+          <div class="np-lyric-inner" id="npLyricInner"></div>
         </div>
       </div>
     </div>
@@ -246,7 +314,7 @@
   <div class="theme-panel">
     <div class="tp-head">
       <h3>更换皮肤</h3>
-      <button class="tb-btn" id="btnThemeClose">✕</button>
+      <button class="tb-btn" id="btnThemeClose" data-icon="close"></button>
     </div>
 
     <div class="tp-section">
@@ -281,8 +349,14 @@
 </div>
 
 <div class="toast hidden" id="toast"></div>
+<!-- 加载顺序有讲究：底层能力在前，app.js 最后启动 -->
 <script src="themes.js"></script>
+<script src="icons.js"></script>
+<script src="normalize.js"></script>
 <script src="migu.js"></script>
+<script src="ui.js"></script>
+<script src="player.js"></script>
+<script src="views.js"></script>
 <script src="app.js"></script>
 </body>
 </html>

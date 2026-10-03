@@ -70,6 +70,8 @@ async function waitFor(send, expr, timeout = 15000, step = 250) {
   }
 }
 
+module.exports = { connect, evaluate, shot, waitFor, targets, PORT };
+
 async function main() {
   const [cmd, ...args] = process.argv.slice(2);
   const c = await connect(process.env.CDP_MATCH || undefined);
@@ -78,6 +80,11 @@ async function main() {
       console.log(JSON.stringify(await targets(), null, 2));
     } else if (cmd === 'eval') {
       const v = await evaluate(c.send, args.join(' '));
+      console.log(typeof v === 'string' ? v : JSON.stringify(v, null, 2));
+    } else if (cmd === 'eval-file') {
+      // 从文件读脚本执行：避免 PowerShell 传递长/多行参数时被转义弄坏
+      const src = fs.readFileSync(args[0], 'utf8');
+      const v = await evaluate(c.send, src);
       console.log(typeof v === 'string' ? v : JSON.stringify(v, null, 2));
     } else if (cmd === 'shot') {
       await shot(c.send, args[0]);
@@ -92,4 +99,6 @@ async function main() {
     }
   } finally { c.close(); }
 }
-main().catch(e => { console.error('ERR ' + e.message); process.exit(1); });
+if (require.main === module) {
+  main().catch(e => { console.error('ERR ' + e.message); process.exit(1); });
+}

@@ -11,25 +11,9 @@ function miguImg(src) {
   return MIGU_IMG_BASE + src;
 }
 
-/** 咪咕搜索结果 → 统一歌曲结构 */
+/** 咪咕搜索结果 → 统一歌曲结构（映射规则统一放在 normalize.js，这里只做转发） */
 function normalizeMiguSong(song) {
-  const artists = (song.singerList || []).map(x => x.name).filter(Boolean).join(' / ');
-  return {
-    source: 'migu',
-    id: song.contentId,                 // 统一用 contentId 作 id
-    contentId: song.contentId,
-    copyrightId: song.copyrightId,
-    resourceType: song.resourceType || '2',
-    name: song.songName,
-    artists: (song.singerList || []).map(x => ({ name: x.name })),
-    artistText: artists,
-    album: {
-      name: song.album || '',
-      picUrl: miguImg(song.img1 || song.img2 || song.img3),
-    },
-    duration: (song.duration || 0) * 1000,   // 秒 → 毫秒，与网易云一致
-    vip: (song.showTags || []).includes('vip'),
-  };
+  return Norm.miguSong(song);
 }
 
 /** 搜索咪咕 */
