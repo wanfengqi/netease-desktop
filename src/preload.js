@@ -8,6 +8,10 @@ contextBridge.exposeInMainWorld('dsh', {
     isMaximized: () => ipcRenderer.invoke('win:isMaximized'),
   },
   api: (path, params, cookie) => ipcRenderer.invoke('api:fetch', { path, params, cookie }),
+  // 歌曲评论：主进程已按 /comment/music 做过 slimPayload 瘦身
+  comment: (id, params) => ipcRenderer.invoke('api:fetch', {
+    path: '/comment/music', params: Object.assign({ id: id }, params || {}), cookie: '',
+  }),
   theme: {
     load: () => ipcRenderer.invoke('theme:load'),
     save: (t) => ipcRenderer.invoke('theme:save', t),

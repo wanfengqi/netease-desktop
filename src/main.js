@@ -297,6 +297,42 @@ function slimPayload(path, body) {
     };
   }
 
+  // 歌曲评论：/comment/music 原始响应 70-130KB，单条评论有 27 个字段
+  // （richContent/likeAnimationMap/decoration/vipRights…全是客户端皮肤资源），
+  // 渲染层只要 7 个字段。实测 100 条评论约 130KB → 瘦身后约 12KB。
+  //
+  // 注意：绝不能把 body.total 当作"这首歌的评论数"传给 UI ——
+  // 实测《晴天》total=1970250 是全站评论总数，而 cnum=0 不可用。
+  // 真实条数由渲染层用已加载条数 + body.more 自行表述。
+  if (path.startsWith('/comment/music')) {
+    const pickComment = (c) => ({
+      commentId: c.commentId,
+      content: c.content || '',
+      likedCount: c.likedCount || 0,
+      time: c.time || 0,
+      timeStr: c.timeStr || '',
+      user: c.user ? { nickname: c.user.nickname || '匿名用户', avatarUrl: c.user.avatarUrl || '' } : null,
+      // 楼中楼：只保留"被回复的那条"的昵称与内容，够渲染引用了
+      beReplied: (c.beReplied || []).filter(Boolean).map(b => ({
+        content: b.content || '',
+        nickname: (b.user && b.user.nickname) || '',
+      })),
+    });
+    const hots = body.hotComments || [];
+    const latest = body.comments || [];
+    const slim = {
+      code: body.code,
+      more: !!body.more,
+      moreHot: !!body.moreHot,
+      total: body.total || 0,
+      hotComments: hots.map(pickComment),
+      comments: latest.map(pickComment),
+    };
+    if (body.message) slim.message = body.message;
+    if (body.msg) slim.msg = body.msg;
+    return slim;
+  }
+
   return body;
 }
 

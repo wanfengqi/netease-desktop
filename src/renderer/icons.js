@@ -64,6 +64,9 @@ const Icons = (() => {
     copy:     line('<rect x="9" y="9" width="12" height="12" rx="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/>'),
     music:    line('<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>'),
     save:     line('<path d="M12 3v12"/><path d="m7 10 5 5 5-5"/><path d="M5 21h14"/>'),
+    // 歌曲评论：气泡对话 / 点赞
+    comment:  line('<path d="M20.5 12a7.5 7.5 0 0 1-11 6.7L4.5 20.5l1.8-5A7.5 7.5 0 1 1 20.5 12z"/>'),
+    like:     line('<path d="M7 21V10.5l4.2-7.2a2.2 2.2 0 0 1 3.6 2.4L13.4 9H19a2 2 0 0 1 2 2.4l-1.5 7A2 2 0 0 1 17.6 20H7z"/><path d="M7 10.5H4v10.5h3"/>'),
     // 歌词页：歌词 / 音量小图标
     lyric:    line('<path d="M4 6h16M4 11h10M4 16h13M4 21h7"/>'),
     bolt:     line('<path d="M13 2 4.5 13.5H11l-1 8.5 8.5-11.5H12z"/>'),

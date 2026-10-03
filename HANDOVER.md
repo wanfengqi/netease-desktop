@@ -192,16 +192,16 @@ node tools/cdp.js console              # 读页面里收集到的 error/warning
 
 - 咪咕**数字专辑**（长数字 resId）取不到曲目，页面会提示「需在咪咕客户端购买」
 - 网易云未登录时 VIP 歌曲只播 30 秒试听
-- 未做：MV 播放、歌曲评论、均衡器、收藏歌单（歌单本身收藏）、迷你播放器、无损音质切换
+- **咪咕不支持均衡器**：freetyst.nf.migu.cn 音频 CDN 无任何 CORS 头（OPTIONS 预检 403），挂 createMediaElementSource 会 MEDIA_ERR_SRC_NOT_SUPPORTED 彻底哑音（G0 实测，见 shots/g0-cors-evidence.md）。故均衡器只做网易云单源真滤波，咪咕如实降级为 audio 直连并在 UI 标注。
+- **咪咕无评论接口**：歌曲评论只支持网易云（/comment/music），咪咕明确提示「该音源不支持评论」。
+- 未做：MV 播放、相似歌曲、收藏歌单（歌单本身收藏）、迷你播放器、无损音质切换
 - 队列持久化上限 300 首；播放历史上限 200 首
 
 ## 八、下一步（若继续）
 
-1. 均衡器（Web Audio 的 BiquadFilter）——注意跨域音频需要 `crossOrigin`，
-   CORS 不通过会变哑音，务必先验证再动手
-2. 歌曲评论 / 相似歌曲（`/comment/music`、`/simi/song`）
-3. 歌单收藏（`/playlist/subscribe`）
-4. 每次重新打包后，**记得重设桌面快捷方式指向**
+1. 相似歌曲（/simi/song）、歌单收藏（/playlist/subscribe）
+2. MV 播放、无损音质切换
+3. 每次重新打包后，**记得重设桌面快捷方式指向**
 
 ## 九、协作风险
 
