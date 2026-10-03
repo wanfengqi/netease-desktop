@@ -1,0 +1,288 @@
+<!DOCTYPE html>
+<html lang="zh-CN" data-theme="default">
+<head>
+<meta charset="UTF-8">
+<meta http-equiv="Content-Security-Policy" content="default-src 'self'; img-src 'self' data: https: http:; style-src 'self' 'unsafe-inline'; media-src 'self' data: https: http: blob:; connect-src 'self' http://localhost:*;">
+<title>网易云音乐</title>
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<!-- ============ 自定义标题栏（无边框窗口）============ -->
+<header class="titlebar">
+  <div class="tb-left">
+    <img class="logo" id="logo" src="icon.png" alt="鲸鱼">
+    <span class="tb-title">网易云音乐 <em class="tb-sub">简易桌面版</em></span>
+  </div>
+  <div class="tb-drag"></div>
+  <div class="tb-actions">
+    <button class="tb-btn" id="btnLyric" title="桌面歌词 (Ctrl+Alt+L)">词</button>
+    <button class="tb-btn" id="btnTheme" title="更换皮肤">🎨</button>
+    <button class="tb-btn" id="btnMin" title="最小化">─</button>
+    <button class="tb-btn" id="btnMax" title="最大化">☐</button>
+    <button class="tb-btn tb-close" id="btnClose" title="关闭">✕</button>
+  </div>
+</header>
+
+<!-- ============ 主体 ============ -->
+<div class="app">
+  <!-- 侧边栏 -->
+  <aside class="sidebar">
+    <nav class="nav">
+      <div class="nav-item active" data-view="search"><span class="ni">🔍</span>搜索</div>
+      <div class="nav-item" data-view="playlist"><span class="ni">🎵</span>播放列表</div>
+      <div class="nav-item" data-view="favorites"><span class="ni">❤️</span>我的收藏</div>
+      <div class="nav-item" data-view="login"><span class="ni">👤</span>登录</div>
+    </nav>
+    <div class="login-badge" id="loginBadge">未登录</div>
+  </aside>
+
+  <!-- 内容区 -->
+  <main class="content">
+    <!-- 搜索 -->
+    <section class="view" id="view-search">
+      <div class="source-bar">
+        <span class="src-label">音源</span>
+        <div class="src-tabs" id="srcTabs">
+          <button class="src-tab active" data-src="netease">网易云</button>
+          <button class="src-tab" data-src="migu">咪咕</button>
+        </div>
+        <label class="src-hint" id="srcHint">网易云：需登录才能听 VIP 歌曲</label>
+      </div>
+      <div class="searchbar">
+        <div class="q-wrap">
+          <input id="q" placeholder="搜索歌曲 / 歌手 / 专辑…" autocomplete="off">
+          <div class="q-history hidden" id="qHistory"></div>
+        </div>
+        <button id="btnSearch">搜索</button>
+      </div>
+      <div class="result-tabs" id="resultTabs">
+        <button class="rtab active" data-tab="song">单曲</button>
+        <button class="rtab" data-tab="playlist">歌单</button>
+        <button class="rtab" data-tab="artist">歌手</button>
+      </div>
+      <div class="list" id="results">
+        <div class="empty">输入关键词开始搜索</div>
+      </div>
+    </section>
+
+    <!-- 歌手主页 -->
+    <section class="view hidden" id="view-artist">
+      <div class="ar-head">
+        <button class="btn-ghost" id="btnArBack">← 返回</button>
+        <img class="ar-avatar" id="arAvatar" alt="">
+        <div class="ar-meta">
+          <div class="ar-name" id="arName">—</div>
+          <div class="ar-stats" id="arStats">—</div>
+          <div class="ar-brief" id="arBrief"></div>
+        </div>
+      </div>
+      <div class="ar-tabs">
+        <button class="artab active" data-ar="album">专辑 <span id="arAlbumCount" class="pill"></span></button>
+        <button class="artab" data-ar="song">热门歌曲</button>
+      </div>
+      <div class="list" id="arBody"><div class="empty">加载中…</div></div>
+    </section>
+
+    <!-- 歌单详情 -->
+    <section class="view hidden" id="view-pl">
+      <div class="pl-head">
+        <button class="btn-ghost" id="btnPlBack">← 返回</button>
+        <img class="pl-cover" id="plCover" alt="">
+        <div class="pl-meta">
+          <div class="pl-name" id="plName">—</div>
+          <div class="pl-info" id="plInfo">—</div>
+          <button class="btn-primary" id="btnPlPlayAll">播放全部</button>
+        </div>
+      </div>
+      <div class="list" id="plSongs"><div class="empty">加载中…</div></div>
+    </section>
+
+    <!-- 播放列表 -->
+    <section class="view hidden" id="view-playlist">
+      <div class="pl-head-bar">
+        <h2 class="vtitle">当前播放列表 <span id="plCount" class="pill">0</span></h2>
+        <div class="pl-actions">
+          <button class="btn-ghost" id="btnClearQueue">清空列表</button>
+          <button class="btn-primary" id="btnShufflePlay">随机播放</button>
+        </div>
+      </div>
+      <div class="list" id="plist"><div class="empty">列表为空</div></div>
+    </section>
+
+    <!-- 我的收藏 -->
+    <section class="view hidden" id="view-favorites">
+      <div class="pl-head-bar">
+        <h2 class="vtitle">我的收藏 <span id="favCount" class="pill">0</span></h2>
+        <div class="pl-actions">
+          <button class="btn-ghost" id="btnFavClearAll">清空收藏</button>
+          <button class="btn-primary" id="btnFavPlayAll">播放全部</button>
+        </div>
+      </div>
+      <div class="list" id="favList"><div class="empty">还没有收藏的歌曲<br><span class="hint-sub">在歌曲列表点 ♡ 即可收藏</span></div></div>
+    </section>
+
+    <!-- 登录 -->
+    <section class="view hidden" id="view-login">
+      <!-- 已登录：显示账号 -->
+      <div id="accountSection" class="hidden">
+        <h2 class="vtitle">我的账号</h2>
+        <div class="account-card">
+          <img class="account-avatar" id="accAvatar" alt="">
+          <div class="account-meta">
+            <div class="account-nick" id="accNick">—</div>
+            <div class="account-sub" id="accSub">—</div>
+          </div>
+          <button class="btn-ghost" id="btnLogout">退出登录</button>
+        </div>
+        <div class="account-hint">登录状态已保存在本机，下次打开无需重新扫码</div>
+      </div>
+
+      <!-- 未登录：扫码 -->
+      <div id="qrSection" class="hidden">
+        <h2 class="vtitle">扫码登录</h2>
+        <div class="login-box">
+          <div class="qr-wrap"><img id="qrImg" alt="二维码"><div class="qr-mask" id="qrMask">加载中…</div></div>
+          <div class="login-tip" id="loginTip">用网易云音乐 App 扫码登录</div>
+          <button class="btn-ghost" id="btnQrRefresh">刷新二维码</button>
+        </div>
+      </div>
+    </section>
+  </main>
+</div>
+
+<!-- ============ 播放条 ============ -->
+<footer class="player">
+  <div class="now" id="nowBox" title="点击打开歌词页">
+    <img id="cover" class="cover" alt="">
+    <div class="now-meta">
+      <div class="now-title" id="nowTitle">未在播放</div>
+      <div class="now-artist" id="nowArtist">—</div>
+    </div>
+    <span class="now-expand">⌃</span>
+  </div>
+
+  <div class="controls">
+    <button id="btnMode" class="cbtn cbtn-sm" title="列表循环（点击切换）">🔁</button>
+    <button id="btnPrev" class="cbtn">⏮</button>
+    <button id="btnPlay" class="cbtn cbtn-main">▶</button>
+    <button id="btnNext" class="cbtn">⏭</button>
+  </div>
+
+  <div class="progress">
+    <span id="tCur">0:00</span>
+    <div class="bar" id="bar"><div class="bar-fill" id="barFill"></div><div class="bar-dot" id="barDot"></div></div>
+    <span id="tDur">0:00</span>
+  </div>
+
+  <div class="vol">
+    <button id="btnMute" class="cbtn cbtn-sm">🔊</button>
+    <input type="range" id="vol" min="0" max="100" value="70">
+  </div>
+</footer>
+
+<audio id="audio" preload="none"></audio>
+
+<!-- ============ 歌词详情页 ============ -->
+<div class="np-overlay hidden" id="npOverlay">
+  <div class="np-bg" id="npBg"></div>
+  <div class="np-inner">
+    <!-- 顶栏 -->
+    <div class="np-top">
+      <button class="np-btn" id="npClose" title="收起 (Esc)">⌄</button>
+      <div class="np-top-title" id="npTopTitle">—</div>
+      <button class="np-btn" id="npDesktopLyric" title="桌面歌词">词</button>
+    </div>
+
+    <!-- 主体：左封面右歌词 -->
+    <div class="np-body">
+      <div class="np-left">
+        <div class="np-cover-wrap">
+          <img class="np-cover" id="npCover" alt="">
+        </div>
+        <div class="np-info">
+          <div class="np-title" id="npTitle">未在播放</div>
+          <div class="np-artist" id="npArtist">—</div>
+          <div class="np-album" id="npAlbum"></div>
+        </div>
+
+        <!-- 进度 -->
+        <div class="np-progress">
+          <span id="npCur">0:00</span>
+          <div class="np-bar" id="npBar">
+            <div class="np-bar-buf" id="npBarBuf"></div>
+            <div class="np-bar-fill" id="npBarFill"></div>
+            <div class="np-bar-dot" id="npBarDot"></div>
+          </div>
+          <span id="npDur">0:00</span>
+        </div>
+
+        <!-- 控制 -->
+        <div class="np-controls">
+          <button class="np-cbtn" id="npMode" title="播放模式">🔁</button>
+          <button class="np-cbtn" id="npPrev" title="上一首">⏮</button>
+          <button class="np-cbtn np-main" id="npPlay" title="播放/暂停">▶</button>
+          <button class="np-cbtn" id="npNext" title="下一首">⏭</button>
+          <div class="np-vol">
+            <button class="np-cbtn np-sm" id="npMute">🔊</button>
+            <input type="range" id="npVol" min="0" max="100" value="70">
+          </div>
+        </div>
+      </div>
+
+      <!-- 歌词 -->
+      <div class="np-right">
+        <div class="np-lyric-scroll" id="npLyricScroll">
+          <div class="np-lyric-inner" id="npLyricInner">
+            <div class="empty">暂无歌词</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ============ 皮肤面板 ============ -->
+<div class="theme-overlay hidden" id="themeOverlay">
+  <div class="theme-panel">
+    <div class="tp-head">
+      <h3>更换皮肤</h3>
+      <button class="tb-btn" id="btnThemeClose">✕</button>
+    </div>
+
+    <div class="tp-section">
+      <div class="tp-label">内置皮肤</div>
+      <div class="theme-grid" id="themeGrid"></div>
+    </div>
+
+    <div class="tp-section">
+      <div class="tp-label">从封面取色</div>
+      <div class="tp-hint">用当前播放歌曲的封面自动生成一套皮肤</div>
+      <button class="btn-primary" id="btnFromCover">用当前封面生成皮肤</button>
+    </div>
+
+    <div class="tp-section">
+      <div class="tp-label">自定义主色</div>
+      <div class="color-row">
+        <input type="color" id="colorPick" value="#2b7de9">
+        <input type="text" id="colorHex" value="#2b7de9" spellcheck="false">
+        <button class="btn-primary" id="btnFromColor">生成</button>
+      </div>
+    </div>
+
+    <div class="tp-section">
+      <div class="tp-label">我的皮肤</div>
+      <div class="theme-grid" id="customGrid"><div class="tp-hint">还没有自定义皮肤</div></div>
+    </div>
+
+    <div class="tp-foot">
+      <button class="btn-ghost" id="btnResetTheme">恢复默认皮肤</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast hidden" id="toast"></div>
+<script src="themes.js"></script>
+<script src="migu.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

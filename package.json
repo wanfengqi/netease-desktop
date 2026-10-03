@@ -1,0 +1,67 @@
+{
+  "name": "netease-desktop",
+  "version": "1.0.0",
+  "description": "网易云音乐简易桌面版 - 支持更换皮肤",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "build:dir": "electron-builder --dir",
+    "build": "electron-builder --win nsis"
+  },
+  "author": "",
+  "license": "MIT",
+  "type": "commonjs",
+  "devDependencies": {
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3"
+  },
+  "dependencies": {
+    "migu-api-enhanced": "^2.27.5",
+    "NeteaseCloudMusicApi": "^4.32.0"
+  },
+  "allowScripts": {
+    "electron@44.5.1": true
+  },
+  "build": {
+    "appId": "com.dsh.netease.desktop",
+    "productName": "网易云音乐桌面版",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "src/**/*",
+      "package.json",
+      "node_modules/**/*",
+      "!node_modules/electron/**",
+      "!node_modules/electron-builder/**",
+      "!node_modules/@electron/**",
+      "!node_modules/app-builder-lib/**",
+      "!node_modules/dmg-builder/**",
+      "!node_modules/app-builder-bin/**",
+      "!node_modules/electron-winstaller/**",
+      "!**/*.map",
+      "!**/{test,tests,__tests__,example,examples,docs,doc,man}/**",
+      "!**/{.eslintrc,.eslintrc.js,.eslintrc.json,.npmignore,CHANGELOG.md,changelog.md,.github}/**"
+    ],
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "icon": "src/renderer/icon.ico"
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "shortcutName": "网易云音乐桌面版"
+    },
+    "asarUnpack": [
+      "node_modules/**/*"
+    ]
+  }
+}

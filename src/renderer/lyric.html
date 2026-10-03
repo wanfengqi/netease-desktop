@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head><meta charset="UTF-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { height:100%; overflow:hidden; background:transparent; -webkit-user-select:none; user-select:none; }
+  body { display:flex; flex-direction:column; justify-content:center; align-items:center;
+         font-family:"Microsoft YaHei UI","Segoe UI",sans-serif; padding:8px 16px; }
+  .drag { position:absolute; top:0; left:0; right:0; height:22px; -webkit-app-region:drag; cursor:move; }
+  .line {
+    text-align:center; font-size:26px; font-weight:700; line-height:1.45;
+    -webkit-text-stroke:1px rgba(0,0,0,.55);
+    text-shadow:0 2px 8px rgba(0,0,0,.75), 0 0 2px rgba(0,0,0,.9);
+    color:#fff; transition:color .2s ease,opacity .2s ease;
+    max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  .line.prev, .line.next { font-size:17px; font-weight:500; opacity:.5; }
+  .line.prev { margin-bottom:6px; }
+  .line.next { margin-top:6px; }
+  #active { color:var(--lyric-active, #ff5252); }
+  .toolbar {
+    position:absolute; top:4px; right:6px; display:flex; gap:3px; opacity:0;
+    transition:opacity .18s; -webkit-app-region:no-drag;
+  }
+  body:hover .toolbar { opacity:1; }
+  .toolbar button {
+    width:19px; height:19px; border:0; border-radius:4px; cursor:pointer;
+    background:rgba(0,0,0,.55); color:#fff; font-size:10px; line-height:1;
+    display:grid; place-items:center;
+  }
+  .toolbar button:hover { background:rgba(255,255,255,.25); }
+</style></head>
+<body>
+  <div class="drag"></div>
+  <div class="toolbar">
+    <button id="lock" title="锁定（鼠标穿透）">🔓</button>
+    <button id="close" title="关闭">✕</button>
+  </div>
+  <div class="line prev" id="prev"></div>
+  <div class="line" id="active">网易云音乐 · 桌面歌词</div>
+  <div class="line next" id="next"></div>
+<script>
+  const $ = s => document.querySelector(s);
+  let lines = [], cur = -1, locked = false;
+  function applyVars(theme) {
+    for (const [k, v] of Object.entries(theme.vars || {})) {
+      document.documentElement.style.setProperty(k, v);
+    }
+  }
+  window.dsh.lyric.onTheme(applyVars);
+  window.dsh.lyric.onData((d) => {
+    if (d.lines) { lines = d.lines; cur = -1; }
+    if (typeof d.time === 'number') syncTime(d.time);
+    if (d.idle) $('#active').textContent = '网易云音乐 · 桌面歌词';
+  });
+  function syncTime(t) {
+    if (!lines.length) return;
+    let lo = 0, hi = lines.length - 1, idx = -1;
+    while (lo <= hi) {
+      const mid = (lo + hi) >> 1;
+      if (lines[mid].time <= t) { idx = mid; lo = mid + 1; } else hi = mid - 1;
+    }
+    if (idx !== cur) {
+      cur = idx;
+      $('#active').textContent = idx >= 0 ? lines[idx].text : '♪';
+      $('#prev').textContent   = idx > 0 ? lines[idx-1].text : '';
+      $('#next').textContent   = idx >= 0 && idx+1 < lines.length ? lines[idx+1].text : '';
+    }
+  }
+  $('#close').onclick = () => window.close();
+  $('#lock').onclick = async () => {
+    locked = !locked;
+    await window.dsh.lyric.lock(locked);
+    $('#lock').textContent = locked ? '🔒' : '🔓';
+  };
+</script>
+</body></html>
