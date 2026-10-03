@@ -166,6 +166,15 @@ function closeThemePanel() {
   Views.syncOverlayClass();
 }
 
+/** 有没有浮层盖在全屏上（决定 Esc 与 overlay-open 拖拽屏蔽） */
+function anyOverlayOpen() {
+  function shown(id) {
+    var n = document.getElementById(id);
+    return !!n && !n.classList.contains('hidden');
+  }
+  return shown('npOverlay') || shown('themeOverlay') || shown('cmOverlay') || shown('eqOverlay');
+}
+
 // ==========================================================
 //                     标题栏 / 全局事件
 // ==========================================================
@@ -236,8 +245,12 @@ function bindKeyboard() {
     if (e.ctrlKey && e.key === 'f') { e.preventDefault(); document.getElementById('q').focus(); return; }
     if (e.key === 'Escape') {
       UI.closeMenu();
-      if (Views.isNpOpen()) Views.closeNp();
-      else closeThemePanel();
+      // 逐个关掉最上层的浮层，而不是"没开歌词页就无脑关皮肤面板"
+      // 顺序：评论 > 均衡器 > 歌词页 > 皮肤面板（均衡器面板是第四种浮层，曾漏掉）
+      if (Comments.isOpen()) Comments.close();
+      else if (Player.eqIsOpen()) Player.eqClosePanel();
+      else if (Views.isNpOpen()) Views.closeNp();
+      else if (!document.getElementById('themeOverlay').classList.contains('hidden')) closeThemePanel();
       return;
     }
     if (typing) return;
@@ -287,6 +300,8 @@ window.onunhandledrejection = function (e) {
   Views.init();
   bindTitlebar();
   bindKeyboard();
+  // 评论浮层自己也会盖住标题栏拖拽区，交给同一个 overlay-open 开关统一管
+  Comments.init();
 
   // 3) 把配置回填到界面
   document.querySelectorAll('.src-tab').forEach(function (t) {
