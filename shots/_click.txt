@@ -1,0 +1,25 @@
+
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public class CA {
+  [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X; public int Y; }
+  [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
+  [DllImport("user32.dll")] public static extern bool GetCursorPos(out POINT p);
+  [DllImport("user32.dll")] public static extern void mouse_event(uint f, uint dx, uint dy, uint d, IntPtr e);
+  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
+}
+'@
+$pkg = Get-Process -Name '网易云音乐桌面版' -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
+[CA]::SetForegroundWindow($pkg.MainWindowHandle) | Out-Null
+Start-Sleep -Milliseconds 700
+$old = New-Object CA+POINT
+[CA]::GetCursorPos([ref]$old) | Out-Null
+[CA]::SetCursorPos($env:CX, $env:CY) | Out-Null
+Start-Sleep -Milliseconds 250
+[CA]::mouse_event(0x0002, 0, 0, 0, [IntPtr]::Zero)
+Start-Sleep -Milliseconds 80
+[CA]::mouse_event(0x0004, 0, 0, 0, [IntPtr]::Zero)
+Start-Sleep -Milliseconds 500
+[CA]::SetCursorPos($old.X, $old.Y) | Out-Null
+"clicked $env:CX,$env:CY"

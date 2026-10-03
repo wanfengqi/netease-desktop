@@ -1,0 +1,33 @@
+
+Add-Type -TypeDefinition @'
+using System;
+using System.Runtime.InteropServices;
+public class FinClick {
+  [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X; public int Y; }
+  [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
+  [DllImport("user32.dll")] public static extern bool GetCursorPos(out POINT p);
+  [DllImport("user32.dll")] public static extern void mouse_event(uint f, uint dx, uint dy, uint d, IntPtr e);
+  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
+  [DllImport("user32.dll")] public static extern IntPtr WindowFromPoint(POINT p);
+  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint tpid);
+}
+'@
+$w = Get-Process -Name '网易云音乐桌面版' -ErrorAction SilentlyContinue | Where-Object { $_.MainWindowHandle -ne 0 } | Select-Object -First 1
+if (-not $w) { 'NO WINDOW'; exit 1 }
+"windowed pid=$($w.Id)"
+[FinClick]::SetForegroundWindow($w.MainWindowHandle) | Out-Null
+Start-Sleep -Milliseconds 900
+$pt = New-Object FinClick+POINT; $pt.X = [int]$env:CX; $pt.Y = [int]$env:CY
+$h = [FinClick]::WindowFromPoint($pt); $tpid = 0
+[FinClick]::GetWindowThreadProcessId($h, [ref]$tpid) | Out-Null
+"under point pid=$tpid  (must equal $($w.Id))"
+$old = New-Object FinClick+POINT
+[FinClick]::GetCursorPos([ref]$old) | Out-Null
+[FinClick]::SetCursorPos([int]$env:CX, [int]$env:CY) | Out-Null
+Start-Sleep -Milliseconds 400
+[FinClick]::mouse_event(0x0002, 0, 0, 0, [IntPtr]::Zero)
+Start-Sleep -Milliseconds 150
+[FinClick]::mouse_event(0x0004, 0, 0, 0, [IntPtr]::Zero)
+Start-Sleep -Milliseconds 800
+[FinClick]::SetCursorPos($old.X, $old.Y) | Out-Null
+"clicked $env:CX,$env:CY  (cursor restored)"

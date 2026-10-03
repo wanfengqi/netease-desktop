@@ -1,0 +1,17 @@
+fix: 歌词页返回键点不动 + 搜索结果缺收藏键
+
+1) 浮层里的按钮收不到鼠标事件（用户报「歌词播放页面的返回键还是点击不了」）
+   原因：标题栏是 -webkit-app-region:drag，它覆盖的顶部 38px 由系统命中测试吞掉
+   所有鼠标事件（页面连 mousedown 都收不到）。Electron 只对「拖拽元素的后代」
+   里的 no-drag 做减法 —— 全屏浮层不是 .titlebar 的后代，所以给浮层加 no-drag 无效。
+   修法：浮层打开时整体关掉拖拽带（Views.syncOverlayClass() 给 body 加
+   overlay-open，CSS: body.overlay-open .titlebar{-webkit-app-region:no-drag}）。
+   同时给 .np-overlay/.theme-overlay/.ctx-menu/.toast 补上 no-drag。
+   验证：真鼠标事件（user32 mouse_event）确认事件命中 BUTTON#npClose、
+   closeNp 计数 +1、npOpen=false，且关闭后标题栏拖拽恢复。
+   注意：CDP 的合成鼠标事件不走系统命中测试，会把这个问题测成「正常」。
+
+2) 重构时把搜索结果/歌单/歌手列表的收藏键弄丢了（rowOpts 收到 ctx.actions=undefined）
+   修法：actions 默认 ['fav']，队列视图仍显式传 ['fav','del']。
+
+另：HANDOVER 补充这两条踩坑与坐标换算（physical = 窗口左上角 + CSS 坐标，不乘 dpr）。

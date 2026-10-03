@@ -250,6 +250,7 @@ body {
   position:fixed; inset:0; background:rgba(0,0,0,.45);
   display:grid; place-items:center; z-index:100;
   backdrop-filter:blur(2px);
+  -webkit-app-region:no-drag;   /* 同上：别让标题栏拖拽带吃掉浮层里的点击 */
 }
 .theme-panel {
   width:560px; max-height:82vh; overflow-y:auto;
@@ -312,6 +313,7 @@ body {
 /* ---------------- Toast ---------------- */
 .toast {
   position:fixed; bottom:96px; left:50%; transform:translateX(-50%);
+  -webkit-app-region:no-drag;
   background:var(--text); color:var(--bg); padding:9px 20px;
   border-radius:20px; font-size:13px; z-index:200;
   animation:toastIn .22s ease;
@@ -404,6 +406,11 @@ body {
   display:flex; flex-direction:column;
   background:var(--bg);
   animation:npIn .28s cubic-bezier(.22,.8,.3,1);
+  /* 关键：整页浮层盖住了标题栏那条 -webkit-app-region:drag 的拖拽带，
+     不显式声明 no-drag 的话，落在顶部 38px 里的元素（比如左上角返回键）
+     会被窗口拖拽区吃掉鼠标事件 —— 表现为「点了没反应」。
+     这个坑 CDP 的合成鼠标事件测不出来（不走系统命中测试），必须真点。 */
+  -webkit-app-region:no-drag;
 }
 @keyframes npIn { from{opacity:0; transform:translateY(24px) scale(.985);} to{opacity:1; transform:none;} }
 
@@ -719,6 +726,10 @@ body {
   width:1px; height:16px; align-self:center; margin:0 5px;
   background:currentColor; opacity:.22;
 }
+/* 全屏浮层（歌词页/皮肤面板）盖住标题栏时，取消标题栏拖拽带 —— 否则顶部 38px
+   内的按钮会被窗口拖拽区吞掉鼠标事件（歌词页返回键就是这么坏的）。
+   Electron 只对拖拽元素的后代做 no-drag 减法，浮层不是它的后代，所以必须整体关掉。 */
+body.overlay-open .titlebar { -webkit-app-region:no-drag; }
 .tb-btn.on { background:color-mix(in srgb, var(--accent-fg) 22%, transparent); }
 
 /* ---------------- 按钮里的图标 ---------------- */
@@ -832,6 +843,7 @@ input[type=range]:active::-webkit-slider-thumb { transform:scale(1.25); }
 /* ---------------- 右键 / 更多菜单 ---------------- */
 .ctx-menu {
   position:fixed; z-index:300; min-width:196px; padding:6px;
+  -webkit-app-region:no-drag;
   background:var(--bg-2); border:1px solid var(--border); border-radius:11px;
   box-shadow:0 14px 44px rgba(0,0,0,.3);
   animation:ctxIn .13s cubic-bezier(.2,.8,.3,1);

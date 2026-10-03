@@ -1,0 +1,1 @@
+(function(){ return JSON.stringify({ offLabel: document.getElementById('npOffsetLabel').textContent, offset: state.lyricOffset }); })()

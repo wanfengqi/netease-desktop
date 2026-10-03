@@ -156,8 +156,15 @@ function renderThemeGrids() {
   }
 }
 
-function openThemePanel() { renderThemeGrids(); document.getElementById('themeOverlay').classList.remove('hidden'); }
-function closeThemePanel() { document.getElementById('themeOverlay').classList.add('hidden'); }
+function openThemePanel() {
+  renderThemeGrids();
+  document.getElementById('themeOverlay').classList.remove('hidden');
+  Views.syncOverlayClass();
+}
+function closeThemePanel() {
+  document.getElementById('themeOverlay').classList.add('hidden');
+  Views.syncOverlayClass();
+}
 
 // ==========================================================
 //                     标题栏 / 全局事件

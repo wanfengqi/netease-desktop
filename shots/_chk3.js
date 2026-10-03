@@ -1,0 +1,1 @@
+(function(){ return JSON.stringify({ themeOpen: !document.getElementById('themeOverlay').classList.contains('hidden'), bodyClass: document.body.className, titlebarDrag: getComputedStyle(document.querySelector('.titlebar')).webkitAppRegion, themeDrag: getComputedStyle(document.getElementById('themeOverlay')).webkitAppRegion }); })()

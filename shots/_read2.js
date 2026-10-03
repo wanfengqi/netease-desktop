@@ -1,0 +1,1 @@
+(function(){ return JSON.stringify({closeCount: window.__closeCount, npOpen: Views.isNpOpen(), ev: window.__ev2}, null, 1); })()

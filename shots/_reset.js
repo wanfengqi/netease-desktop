@@ -1,0 +1,1 @@
+(function(){ window.__closeCount = 0; window.__ev2 = []; return 'reset ok, btnCenter=' + JSON.stringify((function(){ var b=document.getElementById('npClose').getBoundingClientRect(); return [Math.round(b.x+b.width/2), Math.round(b.y+b.height/2)]; })()) + ' sx=' + window.screenX + ' sy=' + window.screenY + ' title=' + document.title; })()

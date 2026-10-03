@@ -175,6 +175,18 @@ node tools/cdp.js console              # 读页面里收集到的 error/warning
 4. PowerShell `Get-Content` 显示 UTF-8 文件会变成 GBK 乱码（「启动」→「鍚姩」），
    那是显示问题不是文件损坏，判断编码要用 Node 读。
 5. 打包前先杀掉正在运行的旧打包版进程，否则 electron-builder 的 rmdir 会失败。
+6. **浮层里的按钮点不动 = 标题栏拖拽带在吃事件。** 标题栏是 `-webkit-app-region:drag`，
+   它覆盖的顶部 38px 会吞掉**所有**鼠标事件（页面连 mousedown 都收不到）。
+   而且 Electron 只对「拖拽元素的**后代**」里的 no-drag 做减法 —— 给浮层本身加 no-drag **无效**。
+   正确做法：浮层打开时整体关掉拖拽带（`Views.syncOverlayClass()` 给 body 加
+   `overlay-open`，CSS 写 `body.overlay-open .titlebar{-webkit-app-region:no-drag}`）。
+   这是 v1 起就存在的 bug（歌词页返回键一直点不动），v2 才定位到。
+7. **验证这类问题不能用 CDP 合成事件。** `Input.dispatchMouseEvent` / `element.click()`
+   都不走系统命中测试，会把被吞掉的点击测成「正常」（我第一轮就误判成修好了）。
+   必须发真鼠标事件：PowerShell + user32 `SetCursorPos/mouse_event`，
+   并用 `WindowFromPoint` 确认落点是目标窗口、用 `SetForegroundWindow` 先激活
+   （否则点击会打到别的程序上）。坐标换算：**physical = 窗口左上角 + 页面 CSS 坐标（1:1），
+   不要乘 devicePixelRatio**（本机 Electron 报 dpr=1.25，但窗口 1104px 宽 = 1090 CSS px）。
 
 ## 七、已知限制 / 未做
 

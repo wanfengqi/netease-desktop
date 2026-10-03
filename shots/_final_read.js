@@ -1,0 +1,1 @@
+(function(){ return JSON.stringify({ closeCount: window.__closeCount, npOpen: Views.isNpOpen(), overlayHidden: document.getElementById('npOverlay').classList.contains('hidden'), bodyClass: document.body.className, titlebarDrag: getComputedStyle(document.querySelector('.titlebar')).webkitAppRegion, ev: window.__ev2 }, null, 1); })()

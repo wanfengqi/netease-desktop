@@ -1,0 +1,1 @@
+(function(){ var g=function(s){var e=document.querySelector(s);var b=e.getBoundingClientRect();return [Math.round(b.x+b.width/2),Math.round(b.y+b.height/2)];}; return JSON.stringify({ desktopLyric:g('#npDesktopLyric'), npFav:g('#npFav'), npClose:g('#npClose'), sx:window.screenX, sy:window.screenY }); })()

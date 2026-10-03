@@ -1,0 +1,38 @@
+
+Add-Type -TypeDefinition @'
+using System;
+using System.Text;
+using System.Runtime.InteropServices;
+public class CBP {
+  [StructLayout(LayoutKind.Sequential)] public struct POINT { public int X; public int Y; }
+  [DllImport("user32.dll")] public static extern bool SetCursorPos(int x, int y);
+  [DllImport("user32.dll")] public static extern bool GetCursorPos(out POINT p);
+  [DllImport("user32.dll")] public static extern void mouse_event(uint f, uint dx, uint dy, uint d, IntPtr e);
+  [DllImport("user32.dll")] public static extern bool SetForegroundWindow(IntPtr h);
+  [DllImport("user32.dll")] public static extern IntPtr WindowFromPoint(POINT p);
+  [DllImport("user32.dll")] public static extern IntPtr GetAncestor(IntPtr h, uint f);
+  [DllImport("user32.dll")] public static extern uint GetWindowThreadProcessId(IntPtr h, out uint tpid);
+  [DllImport("user32.dll")] public static extern int GetWindowText(IntPtr h, StringBuilder s, int n);
+}
+'@
+$x = [int]$env:CX; $y = [int]$env:CY
+$pt = New-Object CBP+POINT; $pt.X = $x; $pt.Y = $y
+$h = [CBP]::WindowFromPoint($pt)
+$tpid = 0
+[CBP]::GetWindowThreadProcessId($h, [ref]$tpid) | Out-Null
+$root = [CBP]::GetAncestor($h, 2)
+$sb = New-Object System.Text.StringBuilder 512
+[CBP]::GetWindowText($root, $sb, 512) | Out-Null
+"under($x,$y): hwnd=$root pid=$tpid title=[$($sb.ToString())]"
+[CBP]::SetForegroundWindow($root) | Out-Null
+Start-Sleep -Milliseconds 900
+$old = New-Object CBP+POINT
+[CBP]::GetCursorPos([ref]$old) | Out-Null
+[CBP]::SetCursorPos($x, $y) | Out-Null
+Start-Sleep -Milliseconds 400
+[CBP]::mouse_event(0x0002, 0, 0, 0, [IntPtr]::Zero)
+Start-Sleep -Milliseconds 150
+[CBP]::mouse_event(0x0004, 0, 0, 0, [IntPtr]::Zero)
+Start-Sleep -Milliseconds 800
+[CBP]::SetCursorPos($old.X, $old.Y) | Out-Null
+"clicked $x,$y"

@@ -197,7 +197,9 @@ const Views = (() => {
     return {
       index: i,
       playing: Norm.key(songs[i]) === state.currentKey,
-      actions: ctx.actions,
+      // 默认给每行一个收藏键（搜索结果/歌单/歌手/最近播放都要能直接收藏），
+      // 队列视图会额外传 'del' 来显示"从列表移除"。
+      actions: ctx.actions || ['fav'],
       fav: isFavorite(songs[i]),
       showAlbum: ctx.showAlbum,
       onPick: function () { Player.playFromList(songs, i); },
@@ -755,6 +757,7 @@ const Views = (() => {
   function openNp() {
     npOpen = true;
     el('npOverlay').classList.remove('hidden');
+    syncOverlayClass();
     syncNp();
     renderNpLyric();
     var idx = currentLyricIndex(Player.audio.currentTime);
@@ -762,7 +765,22 @@ const Views = (() => {
     paintNpActive(idx);
     requestAnimationFrame(function () { scrollNpToActive(false); });
   }
-  function closeNp() { npOpen = false; el('npOverlay').classList.add('hidden'); }
+  function closeNp() {
+    npOpen = false;
+    el('npOverlay').classList.add('hidden');
+    syncOverlayClass();
+  }
+
+  /**
+   * 全屏浮层盖住标题栏时，必须把标题栏那条 -webkit-app-region:drag 关掉。
+   * Electron 只对「拖拽元素的子孙」里的 no-drag 做减法，浮层不是 .titlebar 的子孙，
+   * 所以光给浮层加 no-drag 没用 —— 落在顶部 38px 里的按钮照样收不到鼠标事件。
+   */
+  function syncOverlayClass() {
+    var open = !el('npOverlay').classList.contains('hidden') ||
+               !el('themeOverlay').classList.contains('hidden');
+    document.body.classList.toggle('overlay-open', open);
+  }
   function toggleNp() { npOpen ? closeNp() : openNp(); }
 
   /** 把播放器状态同步到歌词页 */
@@ -976,6 +994,7 @@ const Views = (() => {
     isFavorite: isFavorite, toggleFavorite: toggleFavorite, paintCounts: paintCounts,
     onSongChange: onSongChange, refreshPlayState: refreshPlayState,
     openNp: openNp, closeNp: closeNp, toggleNp: toggleNp, syncNp: syncNp,
+    syncOverlayClass: syncOverlayClass,
     updateNpLyric: updateNpLyric, paintNpProgress: paintNpProgress,
     setLyricOffset: setLyricOffset, paintLyricOffset: paintLyricOffset,
     syncNpPlayState: syncNpPlayState,
