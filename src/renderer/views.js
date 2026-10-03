@@ -177,6 +177,11 @@ const Views = (() => {
         onClick: function () { toggleFavorite(song); },
       },
       {
+        label: '查看评论', icon: 'comment',
+        onClick: function () { Comments.openFor(song); },
+      },
+      { sep: true },
+      {
         label: '复制歌名', icon: 'copy',
         onClick: function () {
           var txt = song.name + ' - ' + (song.artistText || '');
@@ -777,8 +782,12 @@ const Views = (() => {
    * 所以光给浮层加 no-drag 没用 —— 落在顶部 38px 里的按钮照样收不到鼠标事件。
    */
   function syncOverlayClass() {
+    var cm = el('cmOverlay');
+    var eq = el('eqOverlay');
     var open = !el('npOverlay').classList.contains('hidden') ||
-               !el('themeOverlay').classList.contains('hidden');
+               !el('themeOverlay').classList.contains('hidden') ||
+               (!!cm && !cm.classList.contains('hidden')) ||
+               (!!eq && !eq.classList.contains('hidden'));
     document.body.classList.toggle('overlay-open', open);
   }
   function toggleNp() { npOpen ? closeNp() : openNp(); }
@@ -882,6 +891,8 @@ const Views = (() => {
     loadLyric(song);
     syncNp();
     refreshPlayState();
+    // 评论浮层跟着换歌：要么刷新成新歌的评论，要么自动关闭，绝不残留上一首
+    Comments.onSongChange(song);
   }
 
   /** 只刷"哪一行在播"，不重建列表 */
@@ -973,6 +984,9 @@ const Views = (() => {
     // ---- 登录 ----
     el('btnLogout').onclick = logout;
     el('btnQrRefresh').onclick = loadQr;
+
+    // ---- 歌曲评论浮层 ----
+    Comments.init();
 
     // ---- 歌词详情页 ----
     el('nowBox').onclick = toggleNp;
