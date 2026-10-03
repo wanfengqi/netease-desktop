@@ -438,7 +438,13 @@ body {
 .np-top {
   flex:0 0 auto; height:52px; display:flex; align-items:center; gap:12px;
   padding:0 18px; border-bottom:1px solid color-mix(in srgb, var(--border) 50%, transparent);
+  /* 歌词页是无边框窗口且全屏覆盖标题栏，这里提供一条可拖拽窗口的区域：
+     按住顶栏（标题文字/空白处）即可拖动窗口；按钮与工具组用 no-drag 保持可点 */
+  -webkit-app-region:drag;
 }
+/* 顶栏内的可交互元素排除出拖拽区 */
+.np-top .np-btn,
+.np-top .np-lyric-tools { -webkit-app-region:no-drag; }
 .np-top-title {
   flex:1; text-align:center; font-size:13px; color:var(--text-2);
   overflow:hidden; text-overflow:ellipsis; white-space:nowrap;

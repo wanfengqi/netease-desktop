@@ -129,7 +129,7 @@ function themeBackground() {
 /** 校验记住的窗口位置还在可见区域内（拔掉显示器的情况） */
 function safeBounds(b) {
   if (!b || typeof b.width !== 'number' || typeof b.height !== 'number') return null;
-  const out = { width: Math.max(900, b.width), height: Math.max(600, b.height) };
+  const out = { width: Math.max(560, b.width), height: Math.max(360, b.height) };
   try {
     const area = screen.getPrimaryDisplay().workArea;
     const all = screen.getAllDisplays().some(d =>
@@ -147,7 +147,7 @@ function createMainWindow() {
     height: bounds ? bounds.height : 700,
     x: bounds && bounds.x,
     y: bounds && bounds.y,
-    minWidth: 900, minHeight: 600,
+    minWidth: 560, minHeight: 360,
     frame: false,
     backgroundColor: themeBackground(),
     icon: path.join(__dirname, 'renderer', 'icon.png'),
