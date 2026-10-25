@@ -15,6 +15,21 @@
 const { app, BrowserWindow } = require('electron');
 const path = require('node:path');
 
+/**
+ * 后台媒体不能被节流（S3 实测踩到）。
+ *
+ * 现象：窗口被别的窗口遮住时，页面 visibilityState 变 hidden，
+ * Chromium 会主动暂停媒体进程，play() 抛
+ *   AbortError: "video-only background media was paused to save power"，
+ * 于是"点了歌但没声音"。音乐播放器恰恰要求"最小化/被遮挡也继续放"，
+ * 所以必须在 app ready 之前关掉这些开关（之后设置无效）。
+ */
+app.commandLine.appendSwitch('disable-background-media-suspend');
+app.commandLine.appendSwitch('disable-renderer-backgrounding');
+app.commandLine.appendSwitch('disable-background-timer-throttling');
+// 注意：不要加 disable-backgrounding-occluded-windows，那会改变窗口遮挡语义，
+// 只关媒体挂起就够（见上面三条）。
+
 const netease = require('./services/neteaseApi.cjs');
 const config = require('./storage/config.cjs');
 const { registerAll } = require('./ipc/index.cjs');
@@ -38,15 +53,20 @@ function createWindow() {
     backgroundColor: '#14151a',
     title: '网易云音乐 · 重构版',
     show: false,
+    // S3：渲染层自绘标题栏（TitleBar.vue），因此去掉原生边框。
+    // 拖拽靠 -webkit-app-region: drag，按钮靠 no-drag —— 见 TitleBar.vue 注释。
+    frame: false,
     webPreferences: {
       preload: PRELOAD_PATH,
       contextIsolation: true,
       nodeIntegration: false,
       sandbox: false,
+      // 遮挡/最小化时也不要降频定时器与媒体（同上，音乐播放器的基本要求）
+      backgroundThrottling: false,
     },
   });
 
-  // 渲染层自己画标题栏，先保留原生边框以免新壳不可拖动
+  // 无边框窗口：拖拽带与 no-drag 减法由渲染层负责
   mainWin.once('ready-to-show', () => mainWin.show());
   mainWin.on('closed', () => {
     mainWin = null;

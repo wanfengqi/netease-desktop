@@ -1,4 +1,10 @@
 <script setup lang="ts">
+/**
+ * 侧栏导航（S0 建立，S3 换真图标）。
+ *
+ * 图标从 Icon.vue 的 SVG 表取，不再用字符当图标 —— 字符在不同字体下大小/基线全不一样。
+ */
+import Icon, { type IconName } from './Icon.vue';
 import type { NavItem, NavKey } from '../nav';
 
 defineProps<{
@@ -13,10 +19,6 @@ const emit = defineEmits<{
 
 <template>
   <aside class="sidebar">
-    <div class="brand">
-      <span class="brand-dot" />
-      <span class="brand-text">网易云音乐<em>重构版</em></span>
-    </div>
     <nav class="nav">
       <button
         v-for="item in items"
@@ -24,70 +26,49 @@ const emit = defineEmits<{
         type="button"
         class="nav-item"
         :class="{ 'is-active': item.key === active }"
+        :title="item.description"
         @click="emit('select', item.key)"
       >
-        <span class="nav-icon">{{ item.icon }}</span>
+        <span class="nav-icon">
+          <Icon :name="item.icon as IconName" :size="16" />
+        </span>
         <span class="nav-label">{{ item.label }}</span>
       </button>
     </nav>
-    <div class="sidebar-foot">S0 骨架 · v0.0.0</div>
+    <div class="sidebar-foot">
+      <span class="foot-dot" />
+      S3 · 播放链路
+    </div>
   </aside>
 </template>
 
 <style scoped>
 .sidebar {
-  width: 208px;
-  flex: 0 0 208px;
+  width: 176px;
+  flex: 0 0 176px;
   display: flex;
   flex-direction: column;
-  padding: 18px 12px 12px;
+  padding: 12px 10px 10px;
   background: var(--sidebar-bg);
   border-right: 1px solid var(--app-border);
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  padding: 0 8px 18px;
-  color: var(--text-strong);
-  font-size: 14px;
-  font-weight: 600;
-}
-
-.brand-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--accent);
-  box-shadow: 0 0 12px var(--accent);
-}
-
-.brand-text em {
-  margin-left: 6px;
-  font-style: normal;
-  font-size: 11px;
-  font-weight: 400;
-  color: var(--text-muted);
 }
 
 .nav {
   display: flex;
   flex-direction: column;
-  gap: 4px;
+  gap: 3px;
 }
 
 .nav-item {
   display: flex;
   align-items: center;
   gap: 10px;
-  padding: 9px 12px;
+  padding: 9px 11px;
   border: 0;
   border-radius: 8px;
   background: transparent;
   color: var(--text);
   font-size: 13px;
-  font-family: inherit;
   text-align: left;
   cursor: pointer;
   transition: background 0.12s ease, color 0.12s ease;
@@ -103,15 +84,29 @@ const emit = defineEmits<{
 }
 
 .nav-icon {
-  width: 16px;
-  text-align: center;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+}
+
+.nav-item.is-active .nav-icon {
   color: var(--accent);
 }
 
 .sidebar-foot {
   margin-top: auto;
-  padding: 8px;
-  font-size: 11px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 10px;
+  font-size: 10px;
   color: var(--text-muted);
+}
+
+.foot-dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--accent);
 }
 </style>

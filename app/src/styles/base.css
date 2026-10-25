@@ -1,13 +1,26 @@
 :root {
   --app-bg: #14151a;
   --sidebar-bg: #1a1b22;
+  --panel-bg: #1c1d24;
+  --panel-hover: #23242c;
   --app-border: rgba(255, 255, 255, 0.07);
   --text: #a9adb8;
   --text-strong: #f0f1f5;
   --text-muted: #6b707c;
   --accent: #ec4d4d;
+  --accent-dim: rgba(236, 77, 77, 0.16);
+  /* 强调色之上的文字（红色底上的白字）——单独成变量，避免各组件硬编码 #fff */
+  --text-on-accent: #ffffff;
+  --track-bg: rgba(255, 255, 255, 0.1);
+  --track-buffer: rgba(255, 255, 255, 0.16);
+  --scrollbar-thumb: rgba(255, 255, 255, 0.12);
+  --scrollbar-thumb-hover: rgba(255, 255, 255, 0.2);
   --item-hover: rgba(255, 255, 255, 0.05);
   --item-active: rgba(236, 77, 77, 0.16);
+  --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.55);
+  --radius: 10px;
+  --titlebar-h: 38px;
+  --playbar-h: 76px;
   color-scheme: dark;
 }
 
@@ -19,13 +32,71 @@ html,
 body,
 #app {
   height: 100%;
+  margin: 0;
 }
 
 body {
-  margin: 0;
   background: var(--app-bg);
   color: var(--text);
   font-family: 'Microsoft YaHei', 'Segoe UI', system-ui, sans-serif;
+  font-size: 13px;
   -webkit-font-smoothing: antialiased;
   user-select: none;
+  overflow: hidden;
+}
+
+#app {
+  display: flex;
+  flex-direction: column;
+}
+
+button {
+  font-family: inherit;
+  font-size: inherit;
+  color: inherit;
+}
+
+input {
+  font-family: inherit;
+  font-size: inherit;
+}
+
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--scrollbar-thumb);
+  border-radius: 999px;
+  border: 2px solid transparent;
+  background-clip: content-box;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(255, 255, 255, 0.2);
+  background-clip: content-box;
+}
+
+/* 骨架屏动画：只在加载态用 */
+@keyframes s3-shimmer {
+  0% { opacity: 0.45; }
+  50% { opacity: 0.9; }
+  100% { opacity: 0.45; }
+}
+
+.s3-skeleton {
+  background: var(--panel-hover);
+  border-radius: 6px;
+  animation: s3-shimmer 1.3s ease-in-out infinite;
+}
+
+.s3-truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

@@ -2,8 +2,18 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<!--
+  CSP（S3 修正）：
+  旧 S0 骨架漏了 media-src，导致 default-src 'self' 把**所有音频**拦掉，
+  表现为 MEDIA_ELEMENT_ERROR: Media load rejected by URL safety check（error code 4）。
+  旧版的 CSP 一直有 media-src 'self' data: https: http: blob:，这里补上并保持同等宽松度：
+    media-src  —— 音频来自网易云/咪咕 CDN（http/https），需要 blob: 供本地兜底
+    img-src    —— 封面图同样来自 CDN
+    connect-src —— 主进程 API 在 localhost，Vite HMR 走 ws
+  script-src 保持 'self' 'unsafe-inline'：Vue 运行时不需要 eval，没有放宽。
+-->
 <meta http-equiv="Content-Security-Policy"
-      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' ws: http://localhost:*">
+      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: http:; media-src 'self' data: https: http: blob:; connect-src 'self' ws: http://localhost:* http://127.0.0.1:*">
 <title>网易云音乐 · 重构版</title>
 </head>
 <body>

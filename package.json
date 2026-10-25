@@ -30,7 +30,8 @@
   },
   "dependencies": {
     "migu-api-enhanced": "^2.27.5",
-    "NeteaseCloudMusicApi": "^4.32.0"
+    "NeteaseCloudMusicApi": "^4.32.0",
+    "pinia": "^4.1.0"
   },
   "allowScripts": {
     "electron@44.5.1": true
