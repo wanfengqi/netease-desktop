@@ -8,7 +8,7 @@
  * 进度条用自绘 div（不是 input[type=range]）：既好做"已播/已缓冲/总长"三段，
  * 又不用跟 Chromium 的原生滑杆样式打架。
  */
-import { computed, ref } from 'vue';
+import { computed, onMounted, onUnmounted, ref } from 'vue';
 import { PLAY_MODES, playModeInfo } from '../core/playmode';
 import Cover from './Cover.vue';
 import Icon from './Icon.vue';
@@ -20,6 +20,9 @@ const player = usePlayerStore();
 const nav = useNavigationStore();
 const toast = useToastStore();
 const windowBusy = ref(false);
+/** 当前是否处于迷你模式（决定播放条按钮是进入还是退出） */
+const miniActive = ref(false);
+let offMiniExit: (() => void) | undefined;
 
 const MODE_ICON = {
   list: 'repeat',
@@ -91,23 +94,55 @@ async function toggleDesktopLyric(): Promise<void> {
   }
 }
 
-async function enterMini(): Promise<void> {
+/**
+ * 迷你模式是**切换**，不是单向进入。
+ * 之前这里只调 enterMini，导致播放条按钮"只能进不能出"，
+ * 用户只能靠迷你窗自己的按钮回来 —— 打包实测复现过。
+ */
+async function toggleMini(): Promise<void> {
   if (windowBusy.value) return;
-  const enter = (window.api.win as { enterMini?: () => Promise<boolean> }).enterMini;
-  if (!enter) {
+  const api = window.api.win;
+  if (!(api.enterMini || api.exitMini)) {
     toast.push('当前环境不支持迷你模式', 'warn');
     return;
   }
   windowBusy.value = true;
   try {
-    const entered = await enter();
-    if (!entered) toast.push('迷你模式未能打开', 'warn');
+    if (miniActive.value) {
+      const exited = await api.exitMini?.();
+      if (exited === false) {
+        toast.push('迷你模式未能退出', 'warn');
+      } else {
+        miniActive.value = false;
+      }
+    } else {
+      const entered = await api.enterMini?.();
+      if (entered) miniActive.value = true;
+      else toast.push('迷你模式未能打开', 'warn');
+    }
   } catch {
-    toast.push('迷你模式未能打开', 'warn');
+    toast.push(miniActive.value ? '迷你模式未能退出' : '迷你模式未能打开', 'warn');
   } finally {
     windowBusy.value = false;
+    // 状态以主进程为准：迷你窗被系统/托盘关掉时本地 ref 不会自己变
+    try {
+      const real = await window.api.win.isMini?.();
+      if (typeof real === 'boolean') miniActive.value = real;
+    } catch {
+      /* 非 Electron 环境保持原值 */
+    }
   }
 }
+
+onMounted(() => {
+  const api = window.api.win;
+  offMiniExit = api.onMiniExit?.(() => { miniActive.value = false; });
+  void api.isMini?.().then((real) => { if (typeof real === 'boolean') miniActive.value = real; }).catch(() => undefined);
+});
+
+onUnmounted(() => {
+  offMiniExit?.();
+});
 </script>
 
 <template>
@@ -211,7 +246,14 @@ async function enterMini(): Promise<void> {
       <button type="button" class="pb-btn" title="桌面歌词" @click="toggleDesktopLyric">
         <Icon name="album" :size="16" />
       </button>
-      <button type="button" class="pb-btn" title="迷你模式" :disabled="windowBusy" @click="enterMini">
+      <button
+        type="button"
+        class="pb-btn"
+        :class="{ 'pb-btn-active': miniActive }"
+        :title="miniActive ? '退出迷你模式' : '迷你模式'"
+        :disabled="windowBusy"
+        @click="toggleMini"
+      >
         <Icon name="square" :size="14" />
       </button>
       <button type="button" class="pb-btn pb-btn-queue" title="播放队列" @click="emit('open-queue')">
@@ -328,6 +370,12 @@ async function enterMini(): Promise<void> {
 .pb-btn:disabled {
   opacity: 0.35;
   cursor: default;
+}
+
+/* 切换型按钮的"已开启"态：迷你模式激活时要知道自己点下去是退出 */
+.pb-btn-active {
+  background: var(--accent-dim);
+  color: var(--accent);
 }
 
 .pb-btn-main {

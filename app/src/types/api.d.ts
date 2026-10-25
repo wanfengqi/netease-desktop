@@ -34,6 +34,11 @@ export interface WindowApi {
     toggleMaximize: () => Promise<boolean>;
     close: () => Promise<void>;
     isMaximized: () => Promise<boolean>;
+    /** S4 迷你模式：进入 / 退出 / 查询。退出必须可调，否则主窗按钮只能进不能出 */
+    enterMini?: () => Promise<boolean>;
+    exitMini?: () => Promise<boolean>;
+    isMini?: () => Promise<boolean>;
+    onMiniExit?: (handler: () => void) => () => void;
   };
   /** 网易云：主进程代理（子进程 + 白名单） */
   netease: NeteaseBridge;

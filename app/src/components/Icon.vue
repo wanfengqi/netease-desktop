@@ -34,15 +34,23 @@ export type IconName =
   | 'music'
   | 'album'
   | 'artist'
-  | 'more';
+  | 'more'
+  | 'heart'
+  | 'heartFilled';
 
 type Prim =
   | { t: 'path'; d: string }
   | { t: 'circle'; cx: number; cy: number; r: number }
   | { t: 'rect'; x: number; y: number; w: number; h: number; rx?: number }
-  | { t: 'polygon'; points: string };
+  | { t: 'polygon'; points: string }
+  /** 实心路径：形状同 path，但按填充渲染（收藏这类需要空心/实心两态的图标） */
+  | { t: 'fillpath'; d: string };
 
 const props = withDefaults(defineProps<{ name: IconName; size?: number }>(), { size: 16 });
+
+/** 心形：同一形状服务空心（描边）与实心（填充）两态，收藏前后只有填充差，不跳形 */
+const HEART_D =
+  'M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z';
 
 const ICONS: Record<IconName, Prim[]> = {
   play: [{ t: 'polygon', points: '8,5 19,12 8,19' }],
@@ -143,6 +151,8 @@ const ICONS: Record<IconName, Prim[]> = {
     { t: 'circle', cx: 12, cy: 8.2, r: 3.9 },
     { t: 'path', d: 'M4.6 20.2c0-3.6 3.3-6.2 7.4-6.2s7.4 2.6 7.4 6.2' },
   ],
+  heart: [{ t: 'path', d: HEART_D }],
+  heartFilled: [{ t: 'fillpath', d: HEART_D }],
   more: [
     { t: 'circle', cx: 5.6, cy: 12, r: 1.5 },
     { t: 'circle', cx: 12, cy: 12, r: 1.5 },
@@ -178,7 +188,8 @@ const prims = computed(() => ICONS[props.name]);
         :height="p.h"
         :rx="p.rx ?? 0"
       />
-      <polygon v-else :points="p.points" fill="currentColor" stroke="none" />
+      <polygon v-else-if="p.t === 'polygon'" :points="p.points" fill="currentColor" stroke="none" />
+      <path v-else :d="p.d" fill="currentColor" stroke="none" />
     </template>
   </svg>
 </template>

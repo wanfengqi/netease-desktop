@@ -37,7 +37,7 @@ const emit = defineEmits<{
     </nav>
     <div class="sidebar-foot">
       <span class="foot-dot" />
-      S3 · 播放链路
+      v2.0.0
     </div>
   </aside>
 </template>

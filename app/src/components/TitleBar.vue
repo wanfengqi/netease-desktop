@@ -54,8 +54,8 @@ onMounted(async () => {
 <template>
   <header class="titlebar">
     <div class="tb-drag">
-      <span class="tb-dot" />
-      <span class="tb-title">网易云音乐 <em>重构版</em></span>
+      <img class="tb-logo" src="/icon.png" alt="" width="18" height="18" />
+      <span class="tb-title">网易云音乐桌面版</span>
     </div>
     <div class="tb-actions">
       <button type="button" class="tb-btn" title="最小化" @click="minimize">
@@ -95,6 +95,8 @@ onMounted(async () => {
   user-select: none;
 }
 
+.tb-logo { width: 18px; height: 18px; object-fit: contain; }
+/* Kept as an optional status indicator for themes; branding uses tb-logo. */
 .tb-dot {
   width: 9px;
   height: 9px;

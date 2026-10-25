@@ -2,8 +2,14 @@ node_modules/
 release/
 *.log
 
+# 打包版验收的隔离用户目录（不污染真实 %APPDATA%）
+.s9-exe-userdata/
+
 # S0 新工程（Vite + Vue 3 + TS）产物
 dist/
 app/dist/
 *.tsbuildinfo
 .vite/
+
+# 验收过程的临时探针脚本与中间截图（本地留档，不入库）
+shots/

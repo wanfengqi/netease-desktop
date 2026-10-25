@@ -14,6 +14,7 @@ import type { Song } from '../data/normalize';
 import { netease } from '../data/repository/index';
 import { hotWords } from '../data/source';
 import { useConfigStore } from '../stores/config';
+import { useFavoritesStore } from '../stores/favorites';
 import { useNavigationStore } from '../stores/navigation';
 import { usePlayerStore } from '../stores/player';
 import { useSearchStore } from '../stores/search';
@@ -24,6 +25,7 @@ const player = usePlayerStore();
 const config = useConfigStore();
 const nav = useNavigationStore();
 const toast = useToastStore();
+const favorites = useFavoritesStore();
 
 const input = ref('');
 const hot = ref<string[]>([]);
@@ -135,6 +137,7 @@ const MENU_ITEMS: readonly MenuItem[] = [
   { id: 'next', label: '下一首播放' },
   { id: 'queue', label: '加入播放队列' },
   { id: 'copy', label: '复制歌名' },
+  { id: 'fav', label: '收藏 / 取消收藏' },
 ];
 
 function submit(): void {
@@ -173,6 +176,10 @@ function contextAction(id: string): void {
   if (!payload) return;
   if (id === 'next') player.insertNext(payload.song);
   if (id === 'queue') player.addToQueue(payload.song);
+  if (id === 'fav') {
+    const on = favorites.toggle(payload.song);
+    toast.push(on ? '已收藏《' + payload.song.name + '》' : '已取消收藏《' + payload.song.name + '》');
+  }
   if (id === 'copy') {
     void navigator.clipboard?.writeText(payload.song.name).then(
       () => toast.push('已复制歌名'),

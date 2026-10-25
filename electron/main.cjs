@@ -7,7 +7,7 @@
  *   - 咪咕：services/miguApi.cjs（ESM 懒加载 + 白名单）
  *   - 配置：storage/config.cjs（新格式 + 旧 config.json 一次性迁移）
  *
- * 与旧版 src/main.js 完全独立：旧版仍由 `npm start` 使用，本文件仅供 `npm run dev`。
+ * 生产与开发共用此入口；旧版源码归档于 legacy/src-v1（标签 legacy-v1）。
  * 注意：本文件不做 CommonJS -> ESM 迁移，扩展名固定 .cjs。
  */
 'use strict';
@@ -66,7 +66,8 @@ function createWindow() {
     minWidth: 880,
     minHeight: 520,
     backgroundColor: '#14151a',
-    title: '网易云音乐 · 重构版',
+    title: '网易云音乐桌面版',
+    icon: path.join(__dirname, '..', 'assets', 'icon.ico'),
     show: false,
     // S3：渲染层自绘标题栏（TitleBar.vue），因此去掉原生边框。
     // 拖拽靠 -webkit-app-region: drag，按钮靠 no-drag —— 见 TitleBar.vue 注释。

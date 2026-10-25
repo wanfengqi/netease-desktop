@@ -8,6 +8,8 @@
  *  · 右键弹菜单：下一首播放 / 加入队列 / 复制歌名
  */
 import { computed } from 'vue';
+import { useFavoritesStore } from '../stores/favorites';
+import { useToastStore } from '../stores/toast';
 import type { Song } from '../data/normalize';
 import { key } from '../data/normalize';
 import Cover from './Cover.vue';
@@ -32,7 +34,17 @@ const emit = defineEmits<{
   (e: 'context', payload: { song: Song; x: number; y: number }): void;
 }>();
 
+const favorites = useFavoritesStore();
+const toast = useToastStore();
+
 const active = computed(() => props.activeKey !== '' && props.activeKey === key(props.song));
+/** 收藏态直接读 store：SongList 服务四个页面，逐层透传会把同样的代码抄四遍 */
+const favorited = computed(() => favorites.has(props.song));
+
+function onFavorite(): void {
+  const on = favorites.toggle(props.song);
+  toast.push(on ? '已收藏《' + props.song.name + '》' : '已取消收藏《' + props.song.name + '》');
+}
 const durationText = computed(() => formatDuration(props.song.duration));
 const vip = computed(() => Boolean(props.song.vip));
 
@@ -66,6 +78,17 @@ function onContext(event: MouseEvent): void {
       <div class="row-artist s3-truncate">{{ song.artistText || '未知歌手' }}</div>
     </div>
     <div v-if="showAlbum" class="row-album s3-truncate">{{ song.album.name || '—' }}</div>
+    <div
+      class="row-fav"
+      :class="{ 'is-on': favorited }"
+      role="button"
+      tabindex="0"
+      :title="favorited ? '取消收藏' : '收藏'"
+      @click.stop="onFavorite"
+      @keydown.enter.stop="onFavorite"
+    >
+      <Icon :name="favorited ? 'heartFilled' : 'heart'" :size="14" />
+    </div>
     <div class="row-duration">{{ durationText }}</div>
   </div>
 </template>
@@ -132,6 +155,38 @@ function onContext(event: MouseEvent): void {
 
 .row.is-active .row-play {
   opacity: 1;
+  color: var(--accent);
+}
+
+/* 收藏键：hover 才出现，已收藏常驻高亮（准则⑦：别让某行的收藏键悄悄消失） */
+.row-fav {
+  display: flex;
+  flex: 0 0 auto;
+  width: 26px;
+  height: 26px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 50%;
+  color: var(--text-muted);
+  opacity: 0;
+  transition:
+    opacity 0.1s ease,
+    color 0.1s ease,
+    background 0.1s ease;
+}
+
+.row:hover .row-fav,
+.row:focus-within .row-fav {
+  opacity: 1;
+}
+
+.row-fav.is-on {
+  opacity: 1;
+  color: var(--accent);
+}
+
+.row-fav:hover {
+  background: var(--item-active);
   color: var(--accent);
 }
 

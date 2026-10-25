@@ -1,12 +1,12 @@
 {
   "name": "netease-desktop",
-  "version": "1.0.0",
+  "version": "2.0.0",
   "description": "网易云音乐简易桌面版 - 支持更换皮肤",
-  "main": "src/main.js",
+  "main": "electron/main.cjs",
   "scripts": {
     "start": "electron .",
-    "build:dir": "electron-builder --dir",
-    "build": "electron-builder --win nsis",
+    "build:dir": "npm run build:renderer && electron-builder --dir",
+    "build": "npm run build:renderer && electron-builder --win nsis",
     "dev": "node scripts/dev.cjs",
     "dev:renderer": "vite",
     "build:renderer": "vite build",
@@ -45,19 +45,18 @@
       "output": "release"
     },
     "files": [
-      "src/**/*",
+      "electron/**/*",
+      "dist/**/*",
+      "assets/**/*",
       "package.json",
       "node_modules/**/*",
-      "!node_modules/electron/**",
-      "!node_modules/electron-builder/**",
-      "!node_modules/@electron/**",
-      "!node_modules/app-builder-lib/**",
-      "!node_modules/dmg-builder/**",
-      "!node_modules/app-builder-bin/**",
-      "!node_modules/electron-winstaller/**",
+      "!electron/**/__tests__/**",
+      "!legacy/**",
+      "!docs/**",
+      "!shots/**",
+      "!tools/**",
       "!**/*.map",
-      "!**/{test,tests,__tests__,example,examples,docs,doc,man}/**",
-      "!**/{.eslintrc,.eslintrc.js,.eslintrc.json,.npmignore,CHANGELOG.md,changelog.md,.github}/**"
+      "!**/{test,tests,__tests__,example,examples,docs,doc,man}/**"
     ],
     "win": {
       "target": [
@@ -68,12 +67,12 @@
           ]
         }
       ],
-      "icon": "src/renderer/icon.ico"
+      "icon": "assets/icon.ico"
     },
     "nsis": {
       "oneClick": false,
       "allowToChangeInstallationDirectory": true,
-      "createDesktopShortcut": true,
+      "createDesktopShortcut": false,
       "shortcutName": "网易云音乐桌面版"
     },
     "asarUnpack": [
