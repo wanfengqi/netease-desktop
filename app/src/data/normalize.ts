@@ -23,7 +23,7 @@ import type {
 } from './raw';
 
 /** 目前接入的两个音源。新增音源时先改这里，让所有 switch 编译期报错。 */
-export type SongSource = 'netease' | 'migu';
+export type SongSource = 'netease' | 'migu' | 'local';
 
 /** 跨源唯一身份键，形如 `netease:12345` / `migu:6009070000001`。 */
 export type SongKey = string;
@@ -47,7 +47,7 @@ export interface Song {
   name: string;
   /** 展示用的人名串，已按 "A / B" 拼好，UI 不要自己 join */
   artistText: string;
-  artists: SongArtist[];
+  artists: readonly SongArtist[];
   album: SongAlbum;
   /** 毫秒 */
   duration: number;
@@ -56,6 +56,8 @@ export interface Song {
   contentId?: string;
   copyrightId?: string;
   resourceType?: string;
+  /** 本地扫描或已完成下载的绝对路径；仅用于本机离线播放 */
+  localPath?: string;
 }
 
 /** 统一歌单对象 */

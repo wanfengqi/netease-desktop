@@ -211,7 +211,7 @@ export const usePlayerStore = defineStore('player', () => {
     const instance = player.value;
     if (!instance) return;
     const state = instance.persist();
-    config.saveQueue(state.songs, state.currentKey);
+    config.saveQueue([...state.songs], state.currentKey);
   }
 
   function dispose(): void {

@@ -102,7 +102,7 @@ function registerAll(opts = {}) {
   registerNetease();
   registerMigu();
   registerConfig();
-  return { registered: true, domains: ['app', 'win', 'netease', 'migu', 'config'] };
+  return { registered: true, domains: ['app', 'win', 'netease', 'migu', 'config', 'local', 'downloads'] };
 }
 
 module.exports = { registerAll };

@@ -24,6 +24,8 @@ export type IconName =
   | 'home'
   | 'discover'
   | 'library'
+  | 'local'
+  | 'downloads'
   | 'settings'
   | 'back'
   | 'minus'
@@ -110,6 +112,15 @@ const ICONS: Record<IconName, Prim[]> = {
     { t: 'path', d: 'M5 4.5v15' },
     { t: 'path', d: 'M10.5 4.5v15' },
     { t: 'path', d: 'M16 5.5l4 15' },
+  ],
+  local: [
+    { t: 'path', d: 'M3 6h7l2 2h9v11H3z' },
+    { t: 'path', d: 'M9 15.5v-5l6-1.3v5.1' },
+    { t: 'circle', cx: 7.5, cy: 15.8, r: 1.8 },
+    { t: 'circle', cx: 13.5, cy: 14.6, r: 1.8 },
+  ],
+  downloads: [
+    { t: 'path', d: 'M12 3v12m-5-5 5 5 5-5M4 17v3h16v-3' },
   ],
   settings: [
     { t: 'circle', cx: 12, cy: 12, r: 3.4 },

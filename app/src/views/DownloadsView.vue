@@ -1,0 +1,29 @@
+<script setup lang="ts">
+import { onBeforeUnmount, onMounted } from 'vue';
+import { useDownloadsStore } from '../stores/downloads';
+import { usePlayerStore } from '../stores/player';
+import DownloadActions from '../components/DownloadActions.vue';
+const downloads = useDownloadsStore(); const player = usePlayerStore();
+onMounted(() => { void downloads.init(); }); onBeforeUnmount(() => downloads.dispose());
+const labels = { queued: '等待中', downloading: '下载中', completed: '已完成', failed: '失败', cancelled: '已取消' } as const;
+function percent(value: number): string { return Math.round(value * 100) + '%'; }
+async function play(index: number): Promise<void> { await player.playList(downloads.completed, index); }
+</script>
+<template>
+<div class="downloads-view">
+<header class="page-head"><div><h1>下载管理</h1><p>仅供本应用离线播放；下载地址不会被保存</p></div><DownloadActions :songs="player.queueSongs" label="下载当前队列" /></header>
+<section class="destination"><div><span>下载目录</span><strong>{{ downloads.directory || '尚未设置' }}</strong></div><button @click="downloads.chooseDirectory()">选择目录</button></section>
+<div v-if="downloads.error" class="error">{{ downloads.error }}</div>
+<div class="queue-head"><h2>下载记录 <span>{{ downloads.records.length }}</span></h2><span>{{ downloads.completed.length }} 首可离线播放</span></div>
+<div v-if="downloads.records.length === 0" class="empty"><svg viewBox="0 0 24 24"><path d="M12 3v12m-5-5 5 5 5-5M4 17v3h16v-3" /></svg><p>还没有下载任务</p><span>在歌曲菜单或当前队列中开始下载</span></div>
+<div v-else class="records">
+<article v-for="record in downloads.records" :key="record.id" class="record" :data-download-id="record.id" :data-status="record.status">
+<div class="record-info"><div class="record-title"><strong>{{ record.song.name }}</strong><span :class="'status-' + record.status">{{ labels[record.status] }}</span></div><p>{{ record.song.artistText }} · {{ record.song.album.name || '未知专辑' }}</p><div v-if="record.status === 'downloading' || record.status === 'queued'" class="progress"><i :style="{ width: percent(record.progress) }" /></div><small v-if="record.status === 'downloading'">{{ record.received }} / {{ record.total || '?' }} bytes · {{ percent(record.progress) }}</small><small v-else-if="record.status === 'completed'">{{ record.size }} bytes · SHA-256 {{ record.sha256.slice(0, 12) }}</small><small v-else class="failure">{{ record.error }}</small></div>
+<div class="record-actions"><button v-if="record.status === 'completed'" class="play" @click="play(downloads.completed.findIndex((s) => s.source + ':' + String(s.id) === record.id))">播放</button><button v-if="record.status === 'queued' || record.status === 'downloading'" @click="downloads.cancel(record.id)">取消</button><button v-if="record.status === 'failed' || record.status === 'cancelled'" @click="downloads.retry(record)">重试</button><button v-if="record.status !== 'downloading' && record.status !== 'queued'" title="仅删除记录" @click="downloads.remove(record.id, false)">删记录</button><button v-if="record.status !== 'downloading' && record.status !== 'queued'" title="删除记录和本地文件" @click="downloads.remove(record.id, true)">删文件</button></div>
+</article>
+</div>
+</div>
+</template>
+<style scoped>
+.downloads-view{flex:1;min-height:0;padding:24px 28px;overflow:auto}.page-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}h1{margin:0 0 6px;color:var(--text-strong);font-size:25px}.page-head p{margin:0;color:var(--text-muted);font-size:12px}.destination{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;border:1px solid var(--app-border);border-radius:var(--radius);background:var(--panel-bg)}.destination div{display:flex;flex-direction:column;gap:5px;min-width:0}.destination span{font-size:11px;color:var(--text-muted)}.destination strong{font-size:12px;font-weight:400;color:var(--text);overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.destination button,.record-actions button{flex:0 0 auto;border:1px solid var(--app-border);border-radius:14px;background:transparent;color:var(--text);padding:5px 12px;font-size:11px;cursor:pointer}.destination button:hover,.record-actions button:hover{border-color:var(--accent);color:var(--accent)}.error{padding:10px 12px;margin-top:12px;background:var(--accent-dim);color:var(--accent);border-radius:6px;font-size:12px}.queue-head{display:flex;align-items:center;justify-content:space-between;margin:22px 0 10px}h2{margin:0;font-size:15px;color:var(--text-strong)}h2 span{font-size:11px;color:var(--text-muted);font-weight:400}.queue-head>span{font-size:11px;color:var(--text-muted)}.empty{display:flex;flex-direction:column;align-items:center;padding:65px 20px;color:var(--text-muted);gap:8px}.empty svg{width:32px;height:32px;fill:none;stroke:currentColor;stroke-width:1.3}.empty p{margin:0;color:var(--text);font-size:14px}.empty span{font-size:11px}.records{display:flex;flex-direction:column;gap:8px}.record{display:flex;align-items:center;gap:15px;padding:13px 15px;border-radius:var(--radius);background:var(--panel-bg);border:1px solid var(--app-border)}.record-info{flex:1;min-width:0}.record-title{display:flex;align-items:center;gap:10px}.record-title strong{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:13px;color:var(--text-strong)}.record-title>span{flex:0 0 auto;font-size:10px}.status-completed{color:var(--accent)}.status-failed{color:var(--accent)}.record p{margin:4px 0;color:var(--text-muted);font-size:11px}.record small{color:var(--text-muted);font-size:10px}.record small.failure{color:var(--accent)}.progress{height:3px;background:var(--panel-hover);margin:8px 0 5px}.progress i{display:block;height:100%;background:var(--accent)}.record-actions{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}.record-actions .play{background:var(--accent);border-color:var(--accent);color:var(--text-on-accent)}
+</style>

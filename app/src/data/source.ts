@@ -38,6 +38,21 @@ function reasonOf(play: PlayUrl): string | undefined {
  * 注意：网易云的 url=null 是正常业务返回（无版权），不是异常，不抛错。
  */
 export async function resolveSongUrl(song: Song): Promise<SongUrlResult> {
+  const offline = await window.api.downloads.list();
+  if (song.localPath) {
+    const url = await window.api.local.mediaUrl(song.localPath);
+    return { url, reason: url ? undefined : '本地文件未登记或已移除', level: 'local', auditionMs: 0 };
+  }
+  if (song.source === 'local') {
+    return { url: null, reason: '本地文件路径缺失', level: 'local', auditionMs: 0 };
+  }
+  {
+    const downloaded = offline.records.find((record) => record.status === 'completed' && record.id === song.source + ':' + String(song.id));
+    if (downloaded) {
+      const url = await window.api.local.mediaUrl(downloaded.localPath);
+      if (url) return { url, level: 'offline', auditionMs: 0 };
+    }
+  }
   if (song.source === 'migu') {
     const play = await migu.songUrl(song);
     return { url: play.url, reason: reasonOf(play), level: play.level, auditionMs: play.auditionMs };

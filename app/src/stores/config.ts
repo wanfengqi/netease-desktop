@@ -113,10 +113,10 @@ export const useConfigStore = defineStore('config', () => {
   }
 
   /** 队列 + 当前曲 key 一起写（key 放 extra，旧 schema 不用改） */
-  function saveQueue(songs: Song[], currentKey: string): void {
+  function saveQueue(songs: readonly Song[], currentKey: string): void {
     if (!config.value) return;
     const extra = { ...config.value.extra, [EXTRA_QUEUE_KEY]: currentKey };
-    update({ queue: songs, extra });
+    update({ queue: [...songs], extra });
   }
 
   function setSearchHistory(words: string[]): void {

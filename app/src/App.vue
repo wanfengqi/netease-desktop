@@ -21,7 +21,9 @@ import AlbumView from './views/AlbumView.vue';
 import ArtistView from './views/ArtistView.vue';
 import DiscoverView from './views/DiscoverView.vue';
 import HomeView from './views/HomeView.vue';
+import DownloadsView from './views/DownloadsView.vue';
 import LibraryView from './views/LibraryView.vue';
+import LocalView from './views/LocalView.vue';
 import PlayerView from './views/PlayerView.vue';
 import PlaylistView from './views/PlaylistView.vue';
 import SearchView from './views/SearchView.vue';
@@ -115,6 +117,8 @@ onBeforeUnmount(() => {
       <ArtistView v-else-if="route.name === 'artist'" :artist="route.artist" />
       <HomeView v-else-if="route.name === 'home'" />
       <LibraryView v-else-if="route.name === 'library'" />
+      <LocalView v-else-if="route.name === 'local'" />
+      <DownloadsView v-else-if="route.name === 'downloads'" />
       <SettingsView v-else />
     </main>
   </div>

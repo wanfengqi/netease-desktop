@@ -16,6 +16,8 @@ export type ViewRoute =
   | { name: 'player' }
   | { name: 'search' }
   | { name: 'library' }
+  | { name: 'local' }
+  | { name: 'downloads' }
   | { name: 'settings' }
   | { name: 'playlist'; playlist: Playlist }
   | { name: 'album'; album: Album }
@@ -29,6 +31,8 @@ const NAV_ROUTES: Record<NavKey, ViewRoute> = {
   discover: { name: 'discover' },
   search: { name: 'search' },
   library: { name: 'library' },
+  local: { name: 'local' },
+  downloads: { name: 'downloads' },
   settings: { name: 'settings' },
 };
 
@@ -42,7 +46,17 @@ export const useNavigationStore = defineStore('navigation', () => {
   const activeNav = computed<NavKey>(() => {
     for (let i = stack.value.length - 1; i >= 0; i -= 1) {
       const name = stack.value[i].name;
-      if (name === 'home' || name === 'discover' || name === 'search' || name === 'library' || name === 'settings') return name;
+      if (
+        name === 'home' ||
+        name === 'discover' ||
+        name === 'search' ||
+        name === 'library' ||
+        name === 'local' ||
+        name === 'downloads' ||
+        name === 'settings'
+      ) {
+        return name;
+      }
     }
     return 'home';
   });

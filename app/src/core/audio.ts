@@ -81,7 +81,7 @@ export interface AudioSnapshot {
 export type CrossOriginPolicy = (song: Song | null) => string | null;
 
 export const defaultCrossOriginPolicy: CrossOriginPolicy = (song) =>
-  song && song.source !== 'migu' ? 'anonymous' : null;
+  song && song.source !== 'migu' && !song.localPath ? 'anonymous' : null;
 
 export interface AudioEngineOptions {
   element: AudioElementLike;
