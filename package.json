@@ -10,7 +10,9 @@
     "dev": "node scripts/dev.cjs",
     "dev:renderer": "vite",
     "build:renderer": "vite build",
-    "typecheck": "vue-tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json"
+    "typecheck": "vue-tsc --noEmit -p tsconfig.app.json && tsc --noEmit -p tsconfig.node.json",
+    "test": "vitest run",
+    "test:watch": "vitest"
   },
   "author": "",
   "license": "MIT",
@@ -22,6 +24,7 @@
     "electron-builder": "^26.15.3",
     "typescript": "^5.9.3",
     "vite": "^8.3.5",
+    "vitest": "^5.0.5",
     "vue": "^3.5.44",
     "vue-tsc": "^3.3.13"
   },
