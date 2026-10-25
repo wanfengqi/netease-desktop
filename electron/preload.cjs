@@ -138,6 +138,12 @@ contextBridge.exposeInMainWorld('api', {
     remove: (id, deleteFile) => ipcRenderer.invoke('downloads:remove', id, deleteFile),
     onProgress: (handler) => { const listener = (_event, payload) => handler(payload); ipcRenderer.on('downloads:progress', listener); return () => ipcRenderer.removeListener('downloads:progress', listener); },
   },
+  system: {
+    shortcutStatus: () => ipcRenderer.invoke('shortcuts:status'),
+    setLyricShortcut: (value) => ipcRenderer.invoke('shortcuts:set-lyric', value),
+    trayStatus: () => ipcRenderer.invoke('tray:status'),
+    onCommand: (handler) => { const listener = (_event, command) => handler(command); ipcRenderer.on('system:command', listener); return () => ipcRenderer.removeListener('system:command', listener); },
+  },
   config: {
     load: () => ipcRenderer.invoke('config:load'),
     save: (patch) => ipcRenderer.invoke('config:save', patch),

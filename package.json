@@ -19,6 +19,7 @@
   "type": "commonjs",
   "devDependencies": {
     "@types/node": "^26.6.5",
+    "@types/qrcode": "^1.5.5",
     "@vitejs/plugin-vue": "^6.0.10",
     "electron": "^44.5.1",
     "electron-builder": "^26.15.3",
@@ -29,6 +30,7 @@
     "vue-tsc": "^3.3.13"
   },
   "dependencies": {
+    "qrcode": "^1.5.4",
     "migu-api-enhanced": "^2.27.5",
     "NeteaseCloudMusicApi": "^4.32.0",
     "pinia": "^4.1.0"

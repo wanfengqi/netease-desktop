@@ -95,6 +95,12 @@ function registerConfig() {
  * @param {{ registerWindow?: boolean }} [opts] 保留开关，便于将来分窗口裁剪
  */
 function registerAll(opts = {}) {
+  const shortcuts = opts.shortcuts;
+  if (shortcuts) {
+    ipcMain.handle('shortcuts:status', () => shortcuts.getStatus());
+    ipcMain.handle('shortcuts:set-lyric', (_event, value) => shortcuts.setLyric(value));
+  }
+  if (opts.tray) ipcMain.handle('tray:status', () => opts.tray);
   if (registered) return { registered: false, domains: [] };
   registered = true;
   registerApp();

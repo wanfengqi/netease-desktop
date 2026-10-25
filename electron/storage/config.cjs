@@ -11,7 +11,7 @@
 
 const fs = require('node:fs');
 const path = require('node:path');
-const { migrateLegacyConfig, defaultConfig } = require('./migrate.cjs');
+const { migrateLegacyConfig, defaultConfig, normalizeEqualizer } = require('./migrate.cjs');
 
 const NEXT_FILE = 'next-config.json';
 const LEGACY_FILE = 'config.json';
@@ -51,7 +51,7 @@ function load() {
   if (cache) return cache;
   const own = readJson(nextPath());
   if (own && typeof own === 'object') {
-    cache = { ...defaultConfig(), ...own };
+    cache = { ...defaultConfig(), ...own, equalizer: normalizeEqualizer(own.equalizer) };
     return cache;
   }
   const legacy = readJson(legacyPath());
@@ -71,6 +71,7 @@ function load() {
 function save(patch) {
   const current = load();
   const next = { ...current, ...(patch && typeof patch === 'object' ? patch : {}) };
+  if (patch && patch.equalizer !== undefined) next.equalizer = normalizeEqualizer(patch.equalizer);
   next.version = current.version;
   if (current.migratedFrom) next.migratedFrom = current.migratedFrom;
   next.updatedAt = Date.now();

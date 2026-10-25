@@ -45,7 +45,7 @@ describe('config: 旧 config.json 迁移', () => {
     expect(config.lyricOffset).toBe(250);
     expect(config.queueIndex).toBe(1);
     expect(config.windowBounds).toEqual({ x: 120, y: 80, width: 1400, height: 900 });
-    expect(config.equalizer).toEqual({ enabled: true, bands: LEGACY_SAMPLE.equalizer.bands });
+    expect(config.equalizer).toEqual({ enabled: true, preset: 'flat', bands: LEGACY_SAMPLE.equalizer.bands });
     expect((config.favorites as unknown[])).toHaveLength(2);
     expect((config.queue as unknown[])).toHaveLength(2);
     expect((config.recent as unknown[])).toHaveLength(1);

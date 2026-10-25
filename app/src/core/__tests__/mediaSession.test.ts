@@ -1,0 +1,4 @@
+import {afterEach,describe,expect,it,vi} from 'vitest';
+import {bindMediaSession,updatePositionState} from '../mediaSession';
+afterEach(()=>vi.unstubAllGlobals());
+describe('media session',()=>{it('registers working action handlers and clears them',()=>{const actions={play:vi.fn(),pause:vi.fn(),next:vi.fn(),prev:vi.fn(),seek:vi.fn()};const handlers=new Map<string,MediaSessionActionHandler|null>();const position=vi.fn();vi.stubGlobal('navigator',{mediaSession:{setActionHandler:(n:string,h:MediaSessionActionHandler|null)=>handlers.set(n,h),setPositionState:position}});const off=bindMediaSession(actions);handlers.get('nexttrack')?.({action:'nexttrack'});handlers.get('seekto')?.({action:'seekto',seekTime:12});expect(actions.next).toHaveBeenCalledOnce();expect(actions.seek).toHaveBeenCalledWith(12);updatePositionState(100,120);expect(position).toHaveBeenCalledWith({duration:100,position:100,playbackRate:1});off();expect(handlers.get('nexttrack')).toBeNull();});});

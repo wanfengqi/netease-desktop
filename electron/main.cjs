@@ -39,6 +39,9 @@ const lyricIpc = require('./ipc/lyrics.cjs');
 const registry = require('./windows/registry.cjs');
 const lyricWin = require('./windows/lyricWin.cjs');
 const miniMode = require('./windows/miniMode.cjs');
+const { createShortcuts } = require('./shortcuts.cjs');
+const { createTray } = require('./tray.cjs');
+let shortcuts = null;
 
 // 与旧版共用同一个 userData 目录名 —— 迁移要能读到旧的 config.json；
 // 但配置文件本身分开（next-config.json vs config.json），互不覆盖。
@@ -122,7 +125,15 @@ async function warmup() {
 
 app.whenReady().then(async () => {
   localMedia.handleRequests();
-  registerAll();
+  const configured = config.load().extra?.settings?.shortcuts?.desktopLyric;
+  shortcuts = createShortcuts({ previousLyricAccelerator: typeof configured === 'string' ? configured : '' });
+  const mediaStatus = shortcuts.registerMedia();
+  const lyricStatus = shortcuts.setLyric(typeof configured === 'string' ? configured : 'CommandOrControl+Alt+L');
+  console.log('[shortcuts] media=' + JSON.stringify(mediaStatus.media) + ' lyric=' + JSON.stringify(lyricStatus));
+  const sendCommand = (command) => { const win = registry.getMain(); if (win && !win.webContents.isDestroyed()) win.webContents.send('system:command', command); };
+  const tray = createTray({ getWindow: () => registry.getMain(), send: sendCommand });
+  console.log('[tray] ' + JSON.stringify(tray));
+  registerAll({ shortcuts, tray: { ok: tray.ok, error: tray.error ?? '', menuItems: tray.menuItems } });
   await require('./ipc/s7.cjs').registerAll(() => registry.getMain());
   // S4：桌面歌词 / 迷你模式的 IPC 与窗口模块（都要拿到 preload 路径）
   lyricWin.configure({ devServerUrl: DEV_SERVER_URL, preloadPath: PRELOAD_PATH });
@@ -136,6 +147,7 @@ app.whenReady().then(async () => {
   });
 });
 
+app.on('will-quit', () => { shortcuts?.dispose(); });
 app.on('window-all-closed', () => {
   if (process.platform !== 'darwin') app.quit();
 });

@@ -31,7 +31,7 @@ function defaultConfig() {
     volume: 0.8,
     muted: false,
     lyricOffset: 0,
-    equalizer: { enabled: false, bands: [] },
+    equalizer: { enabled: false, preset: 'flat', bands: Array(10).fill(0) },
     favorites: [],
     recent: [],
     queue: [],
@@ -75,8 +75,14 @@ function normalizeBounds(v) {
 }
 
 function normalizeEqualizer(v) {
-  if (!v || typeof v !== 'object') return { enabled: false, bands: [] };
-  return { ...v, enabled: Boolean(v.enabled), bands: asArray(v.bands) };
+  const raw = v && typeof v === 'object' && !Array.isArray(v) ? v : {};
+  const source = Array.isArray(raw.bands) && raw.bands.length ? raw.bands : asArray(raw.gains);
+  const bands = Array.from({ length: 10 }, (_, i) => {
+    const oldIndex = Math.min(source.length - 1, Math.round(i * (source.length - 1) / 9));
+    const value = Number(source.length === 10 ? source[i] : source[oldIndex]);
+    return Number.isFinite(value) ? Math.max(-12, Math.min(12, value)) : 0;
+  });
+  return { enabled: Boolean(raw.enabled ?? raw.on), preset: typeof raw.preset === 'string' ? raw.preset : 'flat', bands };
 }
 
 /**
@@ -125,4 +131,4 @@ function migrateLegacyConfig(raw) {
   return { config: out, report };
 }
 
-module.exports = { CONFIG_VERSION, KNOWN_KEYS, PLAY_MODES, SOURCES, defaultConfig, migrateLegacyConfig };
+module.exports = { CONFIG_VERSION, KNOWN_KEYS, PLAY_MODES, SOURCES, defaultConfig, migrateLegacyConfig, normalizeEqualizer };

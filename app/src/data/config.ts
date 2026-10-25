@@ -17,6 +17,7 @@ export interface WindowBounds {
 
 export interface EqualizerConfig {
   enabled: boolean;
+  preset?: string;
   bands: number[];
 }
 

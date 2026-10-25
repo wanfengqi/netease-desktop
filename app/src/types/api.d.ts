@@ -2,7 +2,6 @@ import type { MiguBridge } from '../data/repository/migu';
 import type { NeteaseBridge } from '../data/repository/netease';
 import type { NextConfig } from '../data/config';
 import type { DownloadItem, DownloadsState, DownloadRecord, LocalState, ScanProgress, ScanResult } from './offline';
-import type { DownloadItem, DownloadsState, DownloadRecord, LocalState, ScanProgress, ScanResult } from './offline';
 
 export interface AppVersions {
   electron: string;
@@ -11,7 +10,22 @@ export interface AppVersions {
   app: string;
 }
 
+export type SystemCommand = 'toggle' | 'next' | 'prev' | 'lyric';
+export interface ShortcutResult { ok: boolean; accelerator?: string; error: string }
+export interface ShortcutStatus { media: Record<string, ShortcutResult>; desktopLyric: ShortcutResult }
 export interface WindowApi {
+  lyric: {
+    toggle: () => Promise<boolean>;
+    close: () => Promise<boolean>;
+    isOpen: () => Promise<boolean>;
+  };
+  miguStatus?: () => Promise<{ ready: boolean; version?: string }>;
+  system: {
+    shortcutStatus: () => Promise<ShortcutStatus>;
+    setLyricShortcut: (value: string) => Promise<ShortcutResult>;
+    trayStatus: () => Promise<{ ok: boolean; error?: string; menuItems: string[] }>;
+    onCommand: (handler: (command: SystemCommand) => void) => () => void;
+  };
   app: {
     versions: () => Promise<AppVersions>;
   };
@@ -25,25 +39,6 @@ export interface WindowApi {
   netease: NeteaseBridge;
   /** 咪咕：主进程 SDK 白名单 */
   migu: MiguBridge;
-  dialog: { chooseDirectory: (title?: string) => Promise<string | null> };
-  local: {
-    state: () => Promise<LocalState>;
-    addDirectory: (directory: string) => Promise<LocalState>;
-    removeDirectory: (directory: string) => Promise<LocalState>;
-    scan: (options?: { cover?: boolean; maxDepth?: number }) => Promise<ScanResult>;
-    cancel: () => Promise<boolean>;
-    mediaUrl: (localPath: string) => Promise<string | null>;
-    onProgress: (handler: (progress: ScanProgress) => void) => () => void;
-  };
-  downloads: {
-    list: () => Promise<DownloadsState>;
-    setDirectory: (directory: string) => Promise<DownloadsState>;
-    start: (items: DownloadItem[]) => Promise<DownloadsState>;
-    cancel: (id: string) => Promise<boolean>;
-    retry: (id: string, url: string) => Promise<DownloadsState>;
-    remove: (id: string, deleteFile: boolean) => Promise<DownloadsState>;
-    onProgress: (handler: (payload: { ok: boolean; record: DownloadRecord }) => void) => () => void;
-  };
   dialog: { chooseDirectory: (title?: string) => Promise<string | null> };
   local: {
     state: () => Promise<LocalState>;

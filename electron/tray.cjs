@@ -1,0 +1,5 @@
+'use strict';
+const {Tray,Menu,nativeImage,app}=require('electron');
+const path=require('node:path');
+function createTray(options){const getWindow=options.getWindow;const send=options.send;let icon;try{const file=path.join(__dirname,'..','src','renderer','icon.ico');icon=nativeImage.createFromPath(file);if(icon.isEmpty())throw new Error('empty icon');}catch{icon=nativeImage.createEmpty();}let tray;try{tray=new Tray(icon);}catch{return {ok:false,error:'系统托盘不可用',menuItems:[]};}const menuItems=[{label:'显示 / 隐藏主窗',click:()=>{const win=getWindow();if(!win)return;if(win.isVisible())win.hide();else{win.show();win.focus();}}},{label:'播放 / 暂停',click:()=>send('toggle')},{label:'上一首',click:()=>send('prev')},{label:'下一首',click:()=>send('next')},{type:'separator'},{label:'退出',click:()=>app.quit()}];tray.setToolTip('网易云音乐');tray.setContextMenu(Menu.buildFromTemplate(menuItems));tray.on('click',()=>{const win=getWindow();if(win){win.show();win.focus();}});return {ok:true,menuItems:menuItems.filter(x=>x.label).map(x=>x.label),destroy:()=>tray.destroy(),getMenu:()=>tray.getContextMenu?.()??null};}
+module.exports={createTray};

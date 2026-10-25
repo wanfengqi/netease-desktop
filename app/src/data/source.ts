@@ -10,6 +10,8 @@
 import type { Album, Artist, Playlist, Song, SongSource } from './normalize';
 import type { Paged, PlayUrl } from './repository/types';
 import { migu, netease } from './repository/index';
+import { useConfigStore } from '../stores/config';
+import { mergeSettings } from '../core/settings';
 
 export interface SongUrlResult {
   url: string | null;
@@ -53,11 +55,12 @@ export async function resolveSongUrl(song: Song): Promise<SongUrlResult> {
       if (url) return { url, level: 'offline', auditionMs: 0 };
     }
   }
+  const quality = mergeSettings(useConfigStore().config?.extra?.settings).quality;
   if (song.source === 'migu') {
-    const play = await migu.songUrl(song);
+    const play = await migu.songUrl(song, quality.migu);
     return { url: play.url, reason: reasonOf(play), level: play.level, auditionMs: play.auditionMs };
   }
-  const play = await netease.songUrl(song.id);
+  const play = await netease.songUrl(song.id, quality.netease);
   return { url: play.url, reason: reasonOf(play), level: play.level, auditionMs: play.auditionMs };
 }
 

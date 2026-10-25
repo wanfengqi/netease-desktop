@@ -13,6 +13,7 @@
  */
 import { computed, onBeforeUnmount, onMounted, ref, watch } from 'vue';
 import Icon from '../components/Icon.vue';
+import CommentsPanel from '../components/CommentsPanel.vue';
 import Cover from '../components/Cover.vue';
 import LyricsPanel from '../components/LyricsPanel.vue';
 import { playModeInfo } from '../core/playmode';
@@ -34,6 +35,7 @@ const phase = ref<Phase>('cover');
 const lyricOpen = ref(false);
 const miniBusy = ref(false);
 const offsetOpen = ref(false);
+const commentsOpen = ref(false);
 
 let stopBridge: (() => void) | null = null;
 
@@ -158,6 +160,10 @@ watch(
         <span v-if="song" class="pv-head-sub s4-truncate">{{ song.name }} — {{ song.artistText }}</span>
       </div>
       <div class="pv-head-acts">
+        <button v-if="song?.source === 'netease'" type="button" class="pv-btn" title="歌曲评论" @click="commentsOpen = true">
+          <Icon name="queue" :size="14" />
+          <span>评论</span>
+        </button>
         <button
           type="button"
           class="pv-btn pv-btn-toggle"
@@ -354,6 +360,7 @@ watch(
         </div>
       </div>
     </footer>
+    <CommentsPanel v-if="commentsOpen && song" :key="song.source + ':' + String(song.id)" :song="song" @close="commentsOpen = false" />
   </section>
 </template>
 

@@ -16,6 +16,9 @@ import type { Song } from '../data/normalize';
 import { resolveSongUrl } from '../data/source';
 import { useConfigStore } from './config';
 import { useToastStore } from './toast';
+import { Equalizer, type EqualizerSnapshot } from '../core/equalizer';
+import { bindMediaSession, updateMediaMetadata, updatePositionState } from '../core/mediaSession';
+import { mergeSettings } from '../core/settings';
 
 /** 把协调层快照拍平成 store 的 reactive 字段 */
 function snapshotFields(snapshot: PlayerSnapshot) {
@@ -53,6 +56,7 @@ export const usePlayerStore = defineStore('player', () => {
   const volume = ref(0.8);
   const muted = ref(false);
   const lastError = ref<PlayerSnapshot['lastError']>(null);
+  const equalizerState = ref<EqualizerSnapshot>({ enabled: false, ready: false, active: false, broken: false, error: '', retryCount: 0, gains: [] });
 
   const queueSongs = ref<Song[]>([]);
   const queueIndex = ref(-1);
@@ -63,6 +67,20 @@ export const usePlayerStore = defineStore('player', () => {
   let engine: AudioEngine | null = null;
   let unsubscribe: (() => void) | null = null;
   let progressTimer: ReturnType<typeof setInterval> | null = null;
+  let equalizer: Equalizer | null = null;
+  let offMedia: (() => void) | null = null;
+  let offShortcuts: (() => void) | null = null;
+  let lastPositionPush = 0;
+  let resumeOnVisible = false;
+  const onVisibility = (): void => {
+    if (document.hidden && !mergeSettings(config.config?.extra?.settings).backgroundPlayback && playing.value) {
+      resumeOnVisible = true;
+      void toggle();
+    } else if (!document.hidden && resumeOnVisible) {
+      resumeOnVisible = false;
+      void toggle();
+    }
+  };
 
   const progress = computed(() => (duration.value > 0 ? currentTime.value / duration.value : 0));
   const percentLabel = computed(() => formatTime(currentTime.value));
@@ -72,6 +90,7 @@ export const usePlayerStore = defineStore('player', () => {
   function apply(snapshot: PlayerSnapshot): void {
     const fields = snapshotFields(snapshot);
     song.value = fields.song;
+    updateMediaMetadata(fields.song);
     songKey.value = fields.songKey;
     mode.value = fields.mode;
     playing.value = fields.playing;
@@ -90,7 +109,20 @@ export const usePlayerStore = defineStore('player', () => {
   /** 把播放器里真正在用的 <audio> 元素注入引擎（全应用只此一处） */
   function attach(audio: HTMLAudioElement): void {
     if (player.value) return;
-    engine = new AudioEngine({ element: audio, initialVolume: config.volume });
+    const AudioContextCtor = (window as unknown as { AudioContext?: typeof AudioContext }).AudioContext;
+    equalizer = new Equalizer(audio, () => {
+      if (!AudioContextCtor) throw new Error('当前环境不支持 Web Audio');
+      return new AudioContextCtor();
+    });
+    equalizer.configure(config.config?.equalizer);
+    engine = new AudioEngine({
+      element: audio,
+      initialVolume: config.volume,
+      crossOriginPolicy: (song) => {
+        equalizer?.prepare(song ?? null);
+        return equalizer?.shouldUse(song ?? null) && equalizer.snapshot.ready ? 'anonymous' : null;
+      },
+    });
     const instance = new Player({
       engine,
       fetchUrl: resolveSongUrl,
@@ -100,11 +132,35 @@ export const usePlayerStore = defineStore('player', () => {
     });
     player.value = instance;
     unsubscribe = instance.subscribe(apply);
+    engine.subscribe('error', () => {
+      if (!player.value || !engine) return;
+      if (equalizer?.handleMediaError(engine.snapshot.errorCode, song.value)) {
+        toast.push('均衡器异常，已回退原始播放；本次仅自动重载一次', 'warn');
+        equalizerState.value = equalizer.snapshot;
+        const index = player.value.snapshot.queue.index;
+        if (index >= 0) void player.value.playAt(index, { keepHistory: true });
+      }
+    });
+    engine.subscribe('play', () => equalizer?.resetRetries());
 
     instance.setVolume(config.volume);
     instance.setMuted(config.muted);
     restoreFromConfig(instance);
     apply(instance.snapshot);
+    equalizerState.value = equalizer.snapshot;
+    const originalPrepare = equalizer.prepare.bind(equalizer);
+    equalizer.prepare = (song) => { originalPrepare(song); equalizerState.value = equalizer?.snapshot ?? equalizerState.value; };
+    offMedia = bindMediaSession({
+      play: () => { void toggle(); }, pause: () => { if (playing.value) void toggle(); },
+      next: () => { void next(); }, prev: () => { void prev(); }, seek: (seconds) => player.value?.seek(seconds),
+    });
+    document.addEventListener('visibilitychange', onVisibility);
+    offShortcuts = window.api?.system?.onCommand((command) => {
+      if (command === 'toggle') void toggle();
+      else if (command === 'next') void next();
+      else if (command === 'prev') void prev();
+      else if (command === 'lyric') void window.api.lyric.toggle();
+    }) ?? null;
     ready.value = true;
 
     // timeupdate 之外再补一条低频轮询：Electron 里标签页不可见时 timeupdate 会变稀疏
@@ -113,6 +169,7 @@ export const usePlayerStore = defineStore('player', () => {
       const snapshot = player.value.snapshot;
       currentTime.value = snapshot.currentTime;
       duration.value = snapshot.duration;
+      if (Date.now() - lastPositionPush > 1000) { updatePositionState(duration.value, currentTime.value); lastPositionPush = Date.now(); }
     }, 500);
   }
 
@@ -161,6 +218,12 @@ export const usePlayerStore = defineStore('player', () => {
   async function prev(): Promise<void> {
     await player.value?.prev();
     persistQueue();
+  }
+
+  function updateEqualizer(value: unknown): void {
+    equalizer?.configure(value);
+    equalizerState.value = equalizer?.snapshot ?? equalizerState.value;
+    if (equalizerState.value.error) toast.push(equalizerState.value.error, 'warn');
   }
 
   function seekRatio(ratio: number): void {
@@ -215,6 +278,9 @@ export const usePlayerStore = defineStore('player', () => {
   }
 
   function dispose(): void {
+    document.removeEventListener('visibilitychange', onVisibility);
+    offMedia?.(); offShortcuts?.(); offMedia = null; offShortcuts = null;
+    equalizer?.dispose(); equalizer = null;
     if (progressTimer) clearInterval(progressTimer);
     progressTimer = null;
     unsubscribe?.();
@@ -238,6 +304,8 @@ export const usePlayerStore = defineStore('player', () => {
     volume,
     muted,
     lastError,
+    equalizerState,
+    updateEqualizer,
     queueSongs,
     queueIndex,
     history,

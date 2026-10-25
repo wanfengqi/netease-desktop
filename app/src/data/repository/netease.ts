@@ -98,7 +98,7 @@ export class NeteaseRepository {
   }
 
   /** 统一的请求入口：超时 + 重试 + 业务码校验 */
-  private async req(path: string, params: Record<string, unknown> = {}): Promise<unknown> {
+  private async req(path: string, params: Record<string, unknown> = {}, allowedCodes: number[] = [200]): Promise<unknown> {
     const timeoutMs = this.options.timeoutMs ?? 15000;
     const retries = this.options.retries ?? DEFAULT_RETRY.retries;
     const body = await withRetry(
@@ -113,7 +113,7 @@ export class NeteaseRepository {
       },
       { retries, delay: this.options.delay },
     );
-    assertNeteaseCode(body, 'netease ' + path, [200]);
+    assertNeteaseCode(body, 'netease ' + path, allowedCodes);
     return body;
   }
 
@@ -269,6 +269,11 @@ export class NeteaseRepository {
     };
   }
 
+  /** 退出服务端登录；本地 cookie 由 account store 统一清理。 */
+  async logout(): Promise<void> {
+    await this.req('/logout');
+  }
+
   /** 二维码登录：取 key（/login/qr/key） */
   async qrKey(): Promise<string> {
     const body = (await this.req('/login/qr/key')) as { data?: { unikey?: string } };
@@ -289,7 +294,7 @@ export class NeteaseRepository {
 
   /** 二维码登录：轮询结果（/login/qr/check）。800 过期 / 801 待扫 / 802 待确认 / 803 成功 */
   async qrCheck(key: string): Promise<{ code: number; message: string; cookie: string }> {
-    const body = (await this.req('/login/qr/check', { key })) as { code?: number; message?: string; cookie?: string };
+    const body = (await this.req('/login/qr/check', { key }, [200, 800, 801, 802, 803])) as { code?: number; message?: string; cookie?: string };
     return {
       code: body.code ?? 0,
       message: body.message ?? '',
