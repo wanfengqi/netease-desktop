@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
+import { reactive } from 'vue';
 import { AudioEngine, type AudioElementLike, type AudioEventName } from '../audio';
 import { Player, classifyMediaError, indexOfKey, type PersistedPlayerState } from '../player';
 import type { Song } from '../../data/normalize';
@@ -341,5 +342,24 @@ describe('Player — media error 成因区分（旧 2.4）', () => {
     expect((el.play as unknown as { mock: { calls: unknown[] } }).mock.calls.length).toBe(
       playCallsAfterLoad,
     );
+  });
+});
+
+
+describe('Player persist — Vue 代理的深序列化边界', () => {
+  it('嵌套 reactive Song 队列经 persist 后可直接 structuredClone，普通对象语义不变', async () => {
+    const { player } = makePlayer();
+    const reactiveSongs = reactive([A, B]);
+    await player.playList(reactiveSongs, 0);
+    const persisted = player.persist();
+
+    expect(persisted.currentKey).toBe('netease:1');
+    expect(persisted.songs).toEqual([A, B]);
+    expect(persisted.songs[0]).not.toBe(reactiveSongs[0]);
+    expect(persisted.songs[0].album).not.toBe(reactiveSongs[0].album);
+    expect(() => structuredClone({
+      queue: persisted.songs,
+      extra: { queueKey: persisted.currentKey },
+    })).not.toThrow();
   });
 });

@@ -9,6 +9,8 @@
  * 旧格式只有 queue + queueIndex，索引在队列变化后不可信（旧 2.6）。
  */
 import { defineStore } from 'pinia';
+import { toPlainData } from '../core/player';
+import { useToastStore } from './toast';
 import { computed, ref } from 'vue';
 import type { NextConfig } from '../data/config';
 import type { Song } from '../data/normalize';
@@ -30,6 +32,7 @@ function bridge(): ConfigApiLike | null {
 }
 
 export const useConfigStore = defineStore('config', () => {
+  const toast = useToastStore();
   const config = ref<NextConfig | null>(null);
   const loaded = ref(false);
   const error = ref('');
@@ -98,9 +101,12 @@ export const useConfigStore = defineStore('config', () => {
     if (!api || Object.keys(body).length === 0) return;
     saving.value = true;
     try {
-      config.value = await api.save(body);
+      config.value = await api.save(toPlainData(body));
+      error.value = '';
     } catch (err) {
       error.value = err instanceof Error ? err.message : String(err);
+      pending = { ...body, ...pending };
+      toast.push('配置保存失败：' + error.value, 'error');
     } finally {
       saving.value = false;
     }

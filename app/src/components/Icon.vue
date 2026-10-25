@@ -22,6 +22,7 @@ export type IconName =
   | 'queue'
   | 'search'
   | 'home'
+  | 'discover'
   | 'library'
   | 'settings'
   | 'back'
@@ -101,6 +102,10 @@ const ICONS: Record<IconName, Prim[]> = {
     { t: 'path', d: 'M15.4 15.4L21 21' },
   ],
   home: [{ t: 'path', d: 'M3.5 10.8L12 3.5l8.5 7.3V20a1 1 0 0 1-1 1h-15a1 1 0 0 1-1-1z' }],
+  discover: [
+    { t: 'path', d: 'M4 19v-6M10 19V9M16 19V4M22 19H2' },
+    { t: 'path', d: 'M3 10l6-5 6 3 6-6' },
+  ],
   library: [
     { t: 'path', d: 'M5 4.5v15' },
     { t: 'path', d: 'M10.5 4.5v15' },

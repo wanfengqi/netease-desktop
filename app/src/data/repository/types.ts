@@ -88,6 +88,8 @@ export interface HotWord {
   word: string;
   /** 排序权重；咪咕给 rank，网易云给 score */
   rank: number;
+  /** 热度分（仅网易云 /search/hot/detail 提供，其余为 0 或省略） */
+  score?: number;
 }
 
 export type { Song, Playlist, Artist, Album, Comment };

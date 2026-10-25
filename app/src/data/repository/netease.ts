@@ -371,6 +371,71 @@ export class NeteaseRepository {
     const body = (await this.req('/simi/song', { id })) as { songs?: NESongRaw[] };
     return (body.songs ?? []).map((s) => neteaseSong(s)).filter((s): s is Song => s !== null);
   }
+
+  // ------------------------------------------------------------ S5 新增（首页/发现）
+
+  /**
+   * 新歌速递（/personalized/newsong）—— 不需要登录。
+   *
+   * 注意响应形状：每一项是"推荐卡"外壳 { id, name, picUrl, song }，
+   * 歌曲实体在 item.song 里，且 item.song.album 是**对象**（不是 al）；
+   * 封面优先取 album.picUrl，缺失时退回卡片自带的 picUrl。
+   */
+  async personalizedNewsong(limit = 12): Promise<Song[]> {
+    const body = (await this.req('/personalized/newsong', { limit })) as {
+      result?: { id?: number; name?: string; picUrl?: string; song?: NESongRaw }[];
+    };
+    return (body.result ?? [])
+      .map((item) => {
+        const raw = item.song;
+        if (!raw) return null;
+        return neteaseSong(raw, {
+          album: { name: raw.album?.name ?? '', picUrl: raw.album?.picUrl ?? item.picUrl ?? '' },
+        });
+      })
+      .filter((s): s is Song => s !== null);
+  }
+
+  /**
+   * 热搜详情（/search/hot/detail）—— 带名次与热度分。
+   *
+   * 与 /search/hot 的区别：hot/detail 的 data 是数组，含 score（热度）与 iconUrl，
+   * 实测返回 20 条（/search/hot 是 10 条）。名次按数组顺序给，不信服务端排序字段。
+   */
+  async searchHotDetail(limit = 20): Promise<HotWord[]> {
+    const body = (await this.req('/search/hot/detail')) as {
+      data?: { searchWord?: string; score?: number }[];
+    };
+    return (body.data ?? [])
+      .map((h, index) => ({ word: h.searchWord ?? '', rank: index + 1, score: h.score ?? 0 }))
+      .filter((h) => h.word !== '')
+      .slice(0, limit);
+  }
+
+  /**
+   * 搜索联想（/search/suggest + type=mobile）。
+   *
+   * 必须带 type=mobile：不带时网易云返回 albums/artists/songs 三个对象，
+   * **没有 allMatch**（实测 allMatch 缺席），解析出来永远是空数组。
+   * 这里去重后再返回，UI 直接当关键词列表用。
+   */
+  async suggestKeywords(keywords: string): Promise<string[]> {
+    const word = keywords.trim();
+    if (!word) return [];
+    const body = (await this.req('/search/suggest', { keywords: word, type: 'mobile' })) as {
+      result?: { allMatch?: { keyword?: string }[] };
+    };
+    const seen = new Set<string>();
+    const out: string[] = [];
+    for (const item of body.result?.allMatch ?? []) {
+      const kw = item.keyword ?? '';
+      if (kw && !seen.has(kw)) {
+        seen.add(kw);
+        out.push(kw);
+      }
+    }
+    return out;
+  }
 }
 
 /** 评论瘦身：旧版实测 100 条 ≈130KB → 7 字段约 12KB */

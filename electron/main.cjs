@@ -14,6 +14,8 @@
 
 const { app, BrowserWindow } = require('electron');
 const path = require('node:path');
+const localMedia = require('./services/localMedia.cjs');
+localMedia.registerPrivileges();
 
 /**
  * 后台媒体不能被节流（S3 实测踩到）。
@@ -33,6 +35,10 @@ app.commandLine.appendSwitch('disable-background-timer-throttling');
 const netease = require('./services/neteaseApi.cjs');
 const config = require('./storage/config.cjs');
 const { registerAll } = require('./ipc/index.cjs');
+const lyricIpc = require('./ipc/lyrics.cjs');
+const registry = require('./windows/registry.cjs');
+const lyricWin = require('./windows/lyricWin.cjs');
+const miniMode = require('./windows/miniMode.cjs');
 
 // 与旧版共用同一个 userData 目录名 —— 迁移要能读到旧的 config.json；
 // 但配置文件本身分开（next-config.json vs config.json），互不覆盖。
@@ -42,10 +48,16 @@ const DEV_SERVER_URL = process.env.VITE_DEV_SERVER_URL || '';
 const IS_DEV = Boolean(DEV_SERVER_URL);
 const PRELOAD_PATH = path.join(__dirname, 'preload.cjs');
 
-let mainWin = null;
+/**
+ * 开发期预览开关：S4 的播放页（PlayerView.vue）在 App.vue 接线之前没有导航入口，
+ * 而 App.vue 由协调者统一接线、本批次禁止修改。
+ * 置 PREVIEW_PAGE=1 + dev server 时直接加载 app/preview.html 做真实渲染验证。
+ * 仅 dev 生效，生产（无 VITE_DEV_SERVER_URL）永远是 dist/index.html。
+ */
+const PREVIEW_PAGE = (process.env.PREVIEW_PAGE === '1' || process.env.PREVIEW_PAGE === 's7') && IS_DEV;
 
 function createWindow() {
-  mainWin = new BrowserWindow({
+  const mainWin = new BrowserWindow({
     width: 1180,
     height: 760,
     minWidth: 880,
@@ -69,16 +81,23 @@ function createWindow() {
   // 无边框窗口：拖拽带与 no-drag 减法由渲染层负责
   mainWin.once('ready-to-show', () => mainWin.show());
   mainWin.on('closed', () => {
-    mainWin = null;
+    // 主窗口一关，两个附属窗口都不能留活口：
+    // 桌面歌词窗是 skipTaskbar + 置顶的，留着他既看不见入口也关不掉（旧版的真实缺陷）。
+    registry.setMain(null);
+    lyricWin.destroyLyricWindow();
+    miniMode.destroyMiniWindow();
   });
 
   if (IS_DEV) {
-    mainWin.loadURL(DEV_SERVER_URL);
+    const devBase = DEV_SERVER_URL.endsWith('/') ? DEV_SERVER_URL : DEV_SERVER_URL + '/';
+    mainWin.loadURL(PREVIEW_PAGE ? devBase + (process.env.PREVIEW_PAGE === 's7' ? 's7-preview.html' : 'preview.html') : DEV_SERVER_URL);
   } else {
     mainWin.loadFile(path.join(__dirname, '..', 'dist', 'index.html'));
   }
 
+  registry.setMain(mainWin);
   console.log('[main] window created, dev=' + IS_DEV + ', url=' + (IS_DEV ? DEV_SERVER_URL : 'dist/index.html'));
+  return mainWin;
 }
 
 /** 联网能力预热：在窗口出现前后台拉起 API 子进程，失败只记日志不影响启动 */
@@ -101,8 +120,14 @@ async function warmup() {
   console.log('[main] netease api ready=' + ok + ' port=' + st.port + ' pid=' + st.pid);
 }
 
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  localMedia.handleRequests();
   registerAll();
+  await require('./ipc/s7.cjs').registerAll(() => registry.getMain());
+  // S4：桌面歌词 / 迷你模式的 IPC 与窗口模块（都要拿到 preload 路径）
+  lyricWin.configure({ devServerUrl: DEV_SERVER_URL, preloadPath: PRELOAD_PATH });
+  miniMode.configure({ preloadPath: PRELOAD_PATH, devServerUrl: DEV_SERVER_URL });
+  lyricIpc.registerAll();
   createWindow();
   void warmup();
 
@@ -116,5 +141,9 @@ app.on('window-all-closed', () => {
 });
 
 app.on('before-quit', () => {
+  // 置顶歌词窗会阻止 quit：先主动销毁，再停 API 子进程
+  lyricWin.destroyLyricWindow();
+  miniMode.destroyMiniWindow();
+  lyricWin.dispose();
   netease.stop();
 });

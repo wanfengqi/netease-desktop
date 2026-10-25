@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<!--
+  桌面歌词窗页面（S4）。vite 的第二入口（见 vite.config.mts rollupOptions.input）。
+  刻意不引 Vue：这个窗口只需要"三行字 + 几个按钮"，用原生 DOM 起得最快，
+  也避免把整套 Pinia 再装一遍（歌词窗和主窗是两个进程，store 不共享）。
+  颜色全部来自主窗口推过来的主题变量（--accent 等），与主界面保持同一套色板。
+-->
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: http:; connect-src 'self'">
+<title>桌面歌词</title>
+<style>
+  :root {
+    --app-bg: #14151a; --panel-bg: #1c1d24; --app-border: rgba(255,255,255,.07);
+    --text: #a9adb8; --text-strong: #f0f1f5; --text-muted: #6b707c;
+    --accent: #ec4d4d; --item-hover: rgba(255,255,255,.05);
+  }
+  * { margin:0; padding:0; box-sizing:border-box; }
+  html,body { height:100%; overflow:hidden; background:transparent; user-select:none; }
+  body {
+    display:flex; flex-direction:column; justify-content:center; align-items:center;
+    font-family:'Microsoft YaHei UI','Segoe UI',system-ui,sans-serif; padding:6px 14px;
+    position:relative;
+  }
+  /* 拖拽带：整窗顶部 20px；工具栏按钮必须 no-drag，否则拖不动窗/点不动按钮 */
+  .drag { position:absolute; top:0; left:0; right:0; height:20px; -webkit-app-region:drag; cursor:move; }
+  .line {
+    text-align:center; font-weight:700; line-height:1.4;
+    -webkit-text-stroke:1px rgba(0,0,0,.5);
+    text-shadow:0 2px 8px rgba(0,0,0,.8), 0 0 2px rgba(0,0,0,.9);
+    color: var(--text-strong); transition: color .18s ease, opacity .18s ease, font-size .18s ease;
+    max-width:100%; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;
+  }
+  #active { font-size:26px; color: var(--accent); }
+  .line.side { font-size:16px; font-weight:500; opacity:.45; }
+  #prev { margin-bottom:4px; }
+  #next { margin-top:4px; }
+  /* 工具栏：默认隐身，鼠标进来才浮出（锁定后靠 forward:true 仍能触发） */
+  .toolbar {
+    position:absolute; top:2px; right:4px; display:flex; gap:3px; opacity:0;
+    transition:opacity .18s; -webkit-app-region:no-drag; z-index:2;
+  }
+  body:hover .toolbar { opacity:1; }
+  .toolbar button {
+    -webkit-app-region:no-drag;
+    width:19px; height:19px; border:0; border-radius:4px; cursor:pointer;
+    background:rgba(0,0,0,.55); color: var(--text-strong); display:grid; place-items:center;
+  }
+  .toolbar button:hover { background: var(--accent); color:#fff; }
+  .toolbar button.on { background: var(--accent); color:#fff; }
+  svg { display:block; pointer-events:none; }
+  /* 锁定后整窗不接受点击，视觉上给一点提示 */
+  body.locked .drag { cursor: default; }
+</style>
+</head>
+<body>
+  <div class="drag"></div>
+  <div class="toolbar">
+    <button id="btn-lock" title="锁定（鼠标穿透，Ctrl+Alt+L 解锁）">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="4.5" y="10.5" width="15" height="10" rx="2"/><path d="M8 10.5V7a4 4 0 0 1 8 0v3.5"/></svg>
+    </button>
+    <button id="btn-prev" title="上一首">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="5" y="5" width="2.2" height="14" rx=".6"/><polygon points="19,5 19,19 9,12"/></svg>
+    </button>
+    <button id="btn-play" title="播放/暂停">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none"><polygon points="8,5 19,12 8,19"/></svg>
+    </button>
+    <button id="btn-next" title="下一首">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="16.8" y="5" width="2.2" height="14" rx=".6"/><polygon points="5,5 5,19 15,12"/></svg>
+    </button>
+    <button id="btn-minus" title="歌词提前 0.5s">-</button>
+    <button id="btn-plus" title="歌词延后 0.5s">+</button>
+    <button id="btn-close" title="关闭桌面歌词">
+      <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M6.2 6.2l11.6 11.6M17.8 6.2L6.2 17.8"/></svg>
+    </button>
+  </div>
+  <div class="line side" id="prev"></div>
+  <div class="line" id="active">网易云音乐 · 桌面歌词</div>
+  <div class="line side" id="next"></div>
+<script type="module" src="./src/lyric-page.ts"></script>
+</body></html>

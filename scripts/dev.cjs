@@ -17,7 +17,12 @@ async function main() {
   console.log('[dev] vite ready at ' + url);
 
   const electronBin = require('electron');
-  const child = spawn(electronBin, [path.join(ROOT, 'electron', 'main.cjs')], {
+  const electronArgs = [];
+  if (process.env.DEV_CDP) electronArgs.push('--remote-debugging-port=' + process.env.DEV_CDP);
+  if (process.env.DEV_USER_DATA) electronArgs.push('--user-data-dir=' + path.resolve(process.env.DEV_USER_DATA));
+  if (process.env.DEV_MUTE_AUDIO === '1') electronArgs.push('--mute-audio');
+  electronArgs.push(path.join(ROOT, 'electron', 'main.cjs'));
+  const child = spawn(electronBin, electronArgs, {
     cwd: ROOT,
     stdio: 'inherit',
     env: { ...process.env, VITE_DEV_SERVER_URL: url },

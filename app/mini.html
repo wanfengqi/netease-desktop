@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<!--
+  迷你模式入口（S4）。vite 第三入口，与主窗口/歌词窗分开构建。
+  重新进入迷你模式时窗口是新建的，页面每次冷启一次 —— 但主窗口只 hide 不 dispose，
+  音频与播放状态全程只有一个宿主（见 electron/windows/miniMode.cjs 头部的方案说明）。
+-->
+<meta http-equiv="Content-Security-Policy"
+      content="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: https: http:; media-src 'self' data: https: http: blob:">
+<title>网易云音乐 · 迷你</title>
+<style>
+  /* base.css 只给 #app 撑高；迷你入口挂的是 #mini-root，这里补上，否则窗口里会出滚动条 */
+  html, body, #mini-root { height: 100%; margin: 0; overflow: hidden; }
+</style>
+</head>
+<body>
+<div id="mini-root"></div>
+<script type="module" src="./src/mini-page.ts"></script>
+</body>
+</html>

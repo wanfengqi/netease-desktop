@@ -433,7 +433,7 @@ export class Player {
   /** 落盘快照：队列存整首歌 + 当前曲的 key，**不存索引** */
   persist(): PersistedPlayerState {
     return {
-      songs: [...this.queue.items],
+      songs: toPlainData([...this.queue.items]),
       currentKey: currentQueueKey(this.queue),
       mode: this.mode,
       volume: this.engine.currentVolume,
@@ -618,4 +618,9 @@ export class Player {
     const snapshot = this.snapshot;
     for (const listener of Array.from(this.listeners)) listener(snapshot);
   }
+}
+
+/** JSON 深拷贝会剥离整个对象图里的 Vue 代理，保证跨 IPC 的结构化克隆安全。 */
+export function toPlainData<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
 }

@@ -358,6 +358,23 @@ export class MiguRepository {
     }
     return { newPacmToken: body.newPacmToken ?? '', data: inner as Record<string, unknown> };
   }
+
+  /**
+   * 每日推荐曲目（S5）。
+   *
+   * 现状如实记录：getTodayRecommend 需要 pacmToken 手机号/IMEI 登录态，
+   * 实测恒返回 { data: { code: '200205', info: '手机号和IMEI不能同时为空' } }，
+   * 上面的 todayRecommend 会抛**不可重试**错误 —— 调用方必须据此降级，
+   * 不能让它变成页面崩溃（这是已知接口限制，不是 bug）。
+   *
+   * 成功时的字段名尚未实测（手上没有有效 token），所以按"常见字段名"宽容抽取，
+   * 抽不到就返回空数组，不编造数据。
+   */
+  async todayRecommendSongs(pacmToken = ''): Promise<Song[]> {
+    const { data } = await this.todayRecommend(pacmToken);
+    const list = (data['songList'] ?? data['contents'] ?? []) as MiguSongRaw[];
+    return list.map((s) => miguSong(s)).filter((s): s is Song => s !== null);
+  }
 }
 
 /** 取咪咕专辑封面：imgItems 里优先 02 号尺寸 */

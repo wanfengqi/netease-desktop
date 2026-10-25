@@ -12,6 +12,8 @@ import type { NavKey } from '../nav';
 
 export type ViewRoute =
   | { name: 'home' }
+  | { name: 'discover' }
+  | { name: 'player' }
   | { name: 'search' }
   | { name: 'library' }
   | { name: 'settings' }
@@ -24,6 +26,7 @@ const STACK_LIMIT = 20;
 /** 根视图表：侧栏切过来时不带 payload */
 const NAV_ROUTES: Record<NavKey, ViewRoute> = {
   home: { name: 'home' },
+  discover: { name: 'discover' },
   search: { name: 'search' },
   library: { name: 'library' },
   settings: { name: 'settings' },
@@ -39,7 +42,7 @@ export const useNavigationStore = defineStore('navigation', () => {
   const activeNav = computed<NavKey>(() => {
     for (let i = stack.value.length - 1; i >= 0; i -= 1) {
       const name = stack.value[i].name;
-      if (name === 'home' || name === 'search' || name === 'library' || name === 'settings') return name;
+      if (name === 'home' || name === 'discover' || name === 'search' || name === 'library' || name === 'settings') return name;
     }
     return 'home';
   });
@@ -52,6 +55,10 @@ export const useNavigationStore = defineStore('navigation', () => {
   function push(route: ViewRoute): void {
     const next = [...stack.value, route];
     stack.value = next.length > STACK_LIMIT ? next.slice(next.length - STACK_LIMIT) : next;
+  }
+
+  function openPlayer(): void {
+    push({ name: 'player' });
   }
 
   function openPlaylist(playlist: Playlist): void {
@@ -79,6 +86,7 @@ export const useNavigationStore = defineStore('navigation', () => {
     activeNav,
     goNav,
     push,
+    openPlayer,
     openPlaylist,
     openAlbum,
     openArtist,

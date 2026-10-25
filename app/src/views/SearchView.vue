@@ -5,12 +5,13 @@
  * 分栏切换是纯本地状态：三个来源一次搜索就全拿到了，
  * 再点一次"歌单"不该重发请求（旧版每次切 tab 都重搜，慢且烧配额）。
  */
-import { computed, onMounted, ref } from 'vue';
+import { computed, onBeforeUnmount, onMounted, ref } from 'vue';
 import Cover from '../components/Cover.vue';
 import Icon from '../components/Icon.vue';
 import SongList from '../components/SongList.vue';
 import ContextMenu, { type MenuItem } from '../components/ContextMenu.vue';
 import type { Song } from '../data/normalize';
+import { netease } from '../data/repository/index';
 import { hotWords } from '../data/source';
 import { useConfigStore } from '../stores/config';
 import { useNavigationStore } from '../stores/navigation';
@@ -35,6 +36,101 @@ const TABS = [
 
 const contextFor = ref<{ song: Song; x: number; y: number } | null>(null);
 
+/**
+ * 搜索联想（S5 增量）。
+ *
+ * 只做**增量**：不改变提交搜索的路径，联想失败就静默不显示 —— 搜索本身照常工作。
+ * 三个必须处理的细节：
+ *  1. 防抖 220ms：逐字输入时每个键都发请求会打爆接口（网易云对 suggest 有限流）；
+ *  2. 请求序号：慢回包不能覆盖新词的联想结果（与 search store 同一策略）；
+ *  3. 咪咕没有可用的 suggest（SDK 里有 searchSuggest，但主进程白名单没接），
+ *     因此只在网易云音源下启用，咪咕时整块不出现。
+ */
+const SUGGEST_DEBOUNCE_MS = 220;
+const suggests = ref<string[]>([]);
+const suggestIndex = ref(-1);
+const suggestVisible = ref(false);
+let suggestTimer: ReturnType<typeof setTimeout> | null = null;
+let suggestSeq = 0;
+
+function closeSuggest(): void {
+  suggestVisible.value = false;
+  suggestIndex.value = -1;
+  suggests.value = [];
+}
+
+function scheduleSuggest(): void {
+  if (suggestTimer) clearTimeout(suggestTimer);
+  const word = input.value.trim();
+  if (word === '' || config.source === 'migu') {
+    closeSuggest();
+    return;
+  }
+  suggestTimer = setTimeout(() => {
+    void loadSuggest(word);
+  }, SUGGEST_DEBOUNCE_MS);
+}
+
+async function loadSuggest(word: string): Promise<void> {
+  suggestSeq += 1;
+  const mine = suggestSeq;
+  try {
+    const words = await netease.suggestKeywords(word);
+    if (mine !== suggestSeq) return; // 过期回包，丢弃
+    // 输入框已经改了内容时也不再覆盖
+    if (input.value.trim() !== word) return;
+    suggests.value = words.slice(0, 8);
+    suggestVisible.value = suggests.value.length > 0;
+    suggestIndex.value = -1;
+  } catch {
+    if (mine !== suggestSeq) return;
+    closeSuggest(); // 联想是纯增强：失败不打扰用户，也不影响搜索
+  }
+}
+
+function pickSuggest(word: string): void {
+  input.value = word;
+  closeSuggest();
+  void search.submit(word);
+}
+
+/** 键盘：上下选、回车取、Esc 关。输入法组合中（isComposing）不拦截。 */
+function onInputKeydown(event: KeyboardEvent): void {
+  if (event.isComposing) return;
+  if (event.key === 'Escape') {
+    closeSuggest();
+    return;
+  }
+  if (!suggestVisible.value) {
+    if (event.key === 'Enter') submit();
+    return;
+  }
+  if (event.key === 'ArrowDown') {
+    event.preventDefault();
+    suggestIndex.value = (suggestIndex.value + 1) % suggests.value.length;
+    return;
+  }
+  if (event.key === 'ArrowUp') {
+    event.preventDefault();
+    suggestIndex.value = suggestIndex.value <= 0 ? suggests.value.length - 1 : suggestIndex.value - 1;
+    return;
+  }
+  if (event.key === 'Enter') {
+    event.preventDefault();
+    const picked = suggests.value[suggestIndex.value];
+    if (picked) pickSuggest(picked);
+    else {
+      closeSuggest();
+      submit();
+    }
+  }
+}
+
+function onInputChange(): void {
+  if (input.value.trim() === '') closeSuggest();
+  scheduleSuggest();
+}
+
 const MENU_ITEMS: readonly MenuItem[] = [
   { id: 'next', label: '下一首播放' },
   { id: 'queue', label: '加入播放队列' },
@@ -44,16 +140,21 @@ const MENU_ITEMS: readonly MenuItem[] = [
 function submit(): void {
   const text = input.value.trim();
   if (!text) return;
+  // 提交时收起联想：否则结果列表会被下拉挡住（真机上点按钮会 blur，
+  // 但回车提交不会触发 blur，两条路径必须一致）
+  closeSuggest();
   void search.submit(text);
 }
 
 function fill(word: string): void {
   input.value = word;
+  closeSuggest();
   void search.submit(word);
 }
 
 function clearInput(): void {
   input.value = '';
+  closeSuggest();
   search.clear();
 }
 
@@ -89,6 +190,10 @@ onMounted(async () => {
     hot.value = [];
   }
 });
+
+onBeforeUnmount(() => {
+  if (suggestTimer) clearTimeout(suggestTimer);
+});
 </script>
 
 <template>
@@ -102,11 +207,30 @@ onMounted(async () => {
           type="text"
           placeholder="搜索歌曲、歌单、歌手（网易云 / 咪咕）"
           spellcheck="false"
-          @keydown.enter="submit"
+          autocomplete="off"
+          @keydown="onInputKeydown"
+          @input="onInputChange"
+          @blur="closeSuggest"
         />
         <button v-if="input" type="button" class="sv-clear" title="清空" @click="clearInput">
           <Icon name="close" :size="12" />
         </button>
+
+        <!-- 搜索联想（S5 增量，仅在网易云音源下启用） -->
+        <div v-if="suggestVisible" class="sv-suggest" @mousedown.prevent>
+          <button
+            v-for="(word, i) in suggests"
+            :key="word"
+            type="button"
+            class="sv-suggest-item"
+            :class="{ 'is-active': i === suggestIndex }"
+            @click="pickSuggest(word)"
+            @mouseenter="suggestIndex = i"
+          >
+            <Icon name="search" :size="12" />
+            <span class="s3-truncate">{{ word }}</span>
+          </button>
+        </div>
       </div>
       <button type="button" class="sv-go" :disabled="search.loading || !input.trim()" @click="submit">
         {{ search.loading ? '搜索中…' : '搜索' }}
@@ -476,5 +600,46 @@ onMounted(async () => {
   width: 100%;
   aspect-ratio: 1 / 1;
   border-radius: 8px;
+}
+
+/* ---- 搜索联想（S5 增量） ---- */
+.sv-input-wrap {
+  position: relative;
+}
+
+.sv-suggest {
+  position: absolute;
+  left: 0;
+  right: 0;
+  top: calc(100% + 4px);
+  z-index: 30;
+  padding: 4px;
+  border-radius: 8px;
+  background: var(--panel-bg);
+  border: 1px solid var(--app-border);
+  box-shadow: var(--shadow-pop);
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.sv-suggest-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  height: 28px;
+  padding: 0 8px;
+  border: 0;
+  border-radius: 5px;
+  background: transparent;
+  color: var(--text);
+  font-size: 12px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sv-suggest-item.is-active {
+  background: var(--item-active);
+  color: var(--text-strong);
 }
 </style>

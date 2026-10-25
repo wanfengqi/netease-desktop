@@ -13,8 +13,13 @@ import { PLAY_MODES, playModeInfo } from '../core/playmode';
 import Cover from './Cover.vue';
 import Icon from './Icon.vue';
 import { usePlayerStore } from '../stores/player';
+import { useNavigationStore } from '../stores/navigation';
+import { useToastStore } from '../stores/toast';
 
 const player = usePlayerStore();
+const nav = useNavigationStore();
+const toast = useToastStore();
+const windowBusy = ref(false);
 
 const MODE_ICON = {
   list: 'repeat',
@@ -68,19 +73,54 @@ function onBarDown(event: MouseEvent): void {
 }
 
 const emit = defineEmits<{ (e: 'open-queue'): void }>();
+
+function openPlayer(): void {
+  nav.push({ name: 'player' });
+}
+
+async function toggleDesktopLyric(): Promise<void> {
+  const toggle = (window.api as { lyric?: { toggle?: () => Promise<boolean> } }).lyric?.toggle;
+  if (!toggle) {
+    toast.push('当前环境不支持桌面歌词', 'warn');
+    return;
+  }
+  try {
+    await toggle();
+  } catch {
+    toast.push('桌面歌词窗口切换失败', 'warn');
+  }
+}
+
+async function enterMini(): Promise<void> {
+  if (windowBusy.value) return;
+  const enter = (window.api.win as { enterMini?: () => Promise<boolean> }).enterMini;
+  if (!enter) {
+    toast.push('当前环境不支持迷你模式', 'warn');
+    return;
+  }
+  windowBusy.value = true;
+  try {
+    const entered = await enter();
+    if (!entered) toast.push('迷你模式未能打开', 'warn');
+  } catch {
+    toast.push('迷你模式未能打开', 'warn');
+  } finally {
+    windowBusy.value = false;
+  }
+}
 </script>
 
 <template>
   <footer class="playbar">
     <!-- 左：当前曲目 -->
     <div class="pb-left">
-      <template v-if="player.song">
+      <button v-if="player.song" type="button" class="pb-current" title="打开正在播放详情" @click="openPlayer">
         <Cover :src="player.song.album.picUrl" :size="46" :radius="6" />
-        <div class="pb-meta">
-          <div class="pb-title s3-truncate">{{ player.song.name }}</div>
-          <div class="pb-artist s3-truncate">{{ player.song.artistText || '未知歌手' }}</div>
-        </div>
-      </template>
+        <span class="pb-meta">
+          <span class="pb-title s3-truncate">{{ player.song.name }}</span>
+          <span class="pb-artist s3-truncate">{{ player.song.artistText || '未知歌手' }}</span>
+        </span>
+      </button>
       <template v-else>
         <div class="pb-empty-cover">
           <Icon name="music" :size="20" />
@@ -168,6 +208,12 @@ const emit = defineEmits<{ (e: 'open-queue'): void }>();
       >
         <Icon :name="modeIcon" :size="16" />
       </button>
+      <button type="button" class="pb-btn" title="桌面歌词" @click="toggleDesktopLyric">
+        <Icon name="album" :size="16" />
+      </button>
+      <button type="button" class="pb-btn" title="迷你模式" :disabled="windowBusy" @click="enterMini">
+        <Icon name="square" :size="14" />
+      </button>
       <button type="button" class="pb-btn pb-btn-queue" title="播放队列" @click="emit('open-queue')">
         <Icon name="queue" :size="16" />
         <span v-if="queueCount > 0" class="pb-badge">{{ queueCount }}</span>
@@ -196,6 +242,25 @@ const emit = defineEmits<{ (e: 'open-queue'): void }>();
   gap: 10px;
 }
 
+.pb-current {
+  min-width: 0;
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.pb-current:hover .pb-title {
+  color: var(--accent);
+}
+
 .pb-empty-cover {
   width: 46px;
   height: 46px;
@@ -213,11 +278,13 @@ const emit = defineEmits<{ (e: 'open-queue'): void }>();
 }
 
 .pb-title {
+  display: block;
   font-size: 13px;
   color: var(--text-strong);
 }
 
 .pb-artist {
+  display: block;
   margin-top: 3px;
   font-size: 11px;
   color: var(--text-muted);

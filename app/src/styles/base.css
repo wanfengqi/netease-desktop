@@ -18,6 +18,14 @@
   --item-hover: rgba(255, 255, 255, 0.05);
   --item-active: rgba(236, 77, 77, 0.16);
   --shadow-pop: 0 12px 32px rgba(0, 0, 0, 0.55);
+  /* S4：播放页唱片与浮层的专用色（都从这里取，组件里不写死色值） */
+  --disc-bg-core: #1b1c22;
+  --disc-bg-mid: #101116;
+  --disc-bg-edge: #0a0b0e;
+  --disc-groove: rgba(255, 255, 255, 0.045);
+  --disc-hole: var(--app-bg);
+  --shadow-disc: 0 24px 60px rgba(0, 0, 0, 0.6);
+  --overlay-veil: rgba(20, 21, 26, 0.5);
   --radius: 10px;
   --titlebar-h: 38px;
   --playbar-h: 76px;

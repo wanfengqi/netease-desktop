@@ -19,19 +19,26 @@ import ToastHost from './components/ToastHost.vue';
 import Icon from './components/Icon.vue';
 import AlbumView from './views/AlbumView.vue';
 import ArtistView from './views/ArtistView.vue';
+import DiscoverView from './views/DiscoverView.vue';
 import HomeView from './views/HomeView.vue';
 import LibraryView from './views/LibraryView.vue';
+import PlayerView from './views/PlayerView.vue';
 import PlaylistView from './views/PlaylistView.vue';
 import SearchView from './views/SearchView.vue';
 import SettingsView from './views/SettingsView.vue';
 import { NAV_ITEMS, type NavKey } from './nav';
 import { useConfigStore } from './stores/config';
+import { useHistoryStore } from './stores/history';
+import { startDesktopLyricBridge } from './stores/lyrics';
 import { useNavigationStore } from './stores/navigation';
 import { usePlayerStore } from './stores/player';
+import { usePlaylistsStore } from './stores/playlists';
 
 const config = useConfigStore();
 const nav = useNavigationStore();
 const player = usePlayerStore();
+const playlists = usePlaylistsStore();
+const history = useHistoryStore();
 
 const audioRef = ref<HTMLAudioElement | null>(null);
 const queueOpen = ref(false);
@@ -44,6 +51,7 @@ const viewTitle = computed(() => {
   if (r.name === 'playlist') return r.playlist.name;
   if (r.name === 'album') return r.album.name;
   if (r.name === 'artist') return r.artist.name;
+  if (r.name === 'player') return '正在播放';
   return '';
 });
 
@@ -67,8 +75,12 @@ function onBeforeUnload(): void {
 
 onMounted(async () => {
   await config.load();
+  playlists.hydrate();
+  history.hydrate();
+  history.startTracking();
   if (audioRef.value) player.attach(audioRef.value);
   booted.value = true;
+  startDesktopLyricBridge();
   window.addEventListener('beforeunload', onBeforeUnload);
 });
 
@@ -96,6 +108,8 @@ onBeforeUnmount(() => {
       </header>
 
       <SearchView v-if="route.name === 'search'" />
+      <PlayerView v-else-if="route.name === 'player'" />
+      <DiscoverView v-else-if="route.name === 'discover'" />
       <PlaylistView v-else-if="route.name === 'playlist'" :playlist="route.playlist" />
       <AlbumView v-else-if="route.name === 'album'" :album="route.album" />
       <ArtistView v-else-if="route.name === 'artist'" :artist="route.artist" />
