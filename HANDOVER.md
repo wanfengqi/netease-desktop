@@ -1,7 +1,7 @@
 # HANDOVER —— 网易云音乐桌面版 v2
 
 > 用途：把上下文外化成文件。换窗口/换人接手时读这份即可继续，不必回忆。
-> 最后更新：2026-10-25（S9 归档旧版 + 生产打包验收完成）
+> 最后更新：2026-10-26（S9 归档 + 生产打包验收完成；`dd15c5e` 落最终验收报告并在 exe 上补齐咪咕音源链路复测）
 
 ## 一、路径与运行
 
@@ -70,12 +70,16 @@ electron/        main.cjs + preload.cjs(白名单) + ipc/{index,s7,lyric,migu,mi
    API 子进程是普通 Node，读不了 asar，只解 `NeteaseCloudMusicApi` 本体时它的依赖（axios 等）仍在 asar 内 →
    `Cannot find module 'axios'` → 子进程退出 → 主进程被 25s 就绪等待与重试堵死 → CDP eval 全部超时。
    症状看起来像"渲染进程卡死"，其实是主进程忙。v1 能跑正是因为整包解出 node_modules。
-4. 打包版实测发现并修复两个真缺陷：
+4. 打包版实测发现并修复**三个**真缺陷（第三个是读界面文案读出来的，见下）：
    - 标题栏/窗口标题仍写"重构版"（`app/index.html`），侧栏页脚残留 `S3 · 播放链路` 调试标记 → 分别改为正式名称与 `v2.0.0`。
    - **播放条"迷你模式"按钮只能进不能出**（`Playbar.vue` 里只绑了 `enterMini`）。
      改成 `toggleMini` + `miniActive` 状态，并与主进程 `win:is-mini` / `mini:exit` 对齐；
      `:title` 动态显示"退出迷你模式"。`api.d.ts` 补 `enterMini/exitMini/isMini/onMiniExit` 声明（原先靠 cast）。
      这个 bug 在 dev 下没被发现，因为开发时都用迷你窗自己的退出按钮。
+   - **歌曲行没有收藏入口**：`LibraryView` 空态文案写着「在歌曲行上点收藏」，而 `SongRow` 模板里只有播放/封面/标题/时长，
+     搜索页右键菜单也没有收藏项——文案承诺了一条不存在的路。补 `.row-fav`（hover 出现、已收藏常驻高亮，直连 `favorites` store）
+     + 右键菜单「收藏 / 取消收藏」+ `heart`/`heartFilled` 图标（`Icon.vue` 新增 `fillpath` 图元，实心空心共用一条路径不跳形）。
+     exe 实测：点 ♡ → `favorites` 落 1 条（`netease:509781655`）→「我喜欢的音乐 1」可见，菜单与行内状态双向同步。
 5. `vitest.config.mts`：主进程服务测试（`electron/services/__tests__/*.test.mjs`）此前不在默认 `npm test` 的
    include 里——会报绿但没跑到。改到项目根 include 两个来源，并把打包配置断言写成 `packaging.test.mjs`。
    注意该测试原断言"只解 NeteaseCloudMusicApi/migu-api-enhanced"，与第 3 条的正确配置冲突，
@@ -101,6 +105,10 @@ electron/        main.cjs + preload.cjs(白名单) + ipc/{index,s7,lyric,migu,mi
 | 咪咕部分接口 | `getSimilarSongRecommend` 空、`getTodayRecommend` 需登录、`getNewSongList` 返回导航壳 | 上游现状，已按空态/失败态如实处理 |
 | P2（播客/电台、分享、多设备、插件） | 未开始 | 本轮范围是 P0 + 不越界的 P1 子集 |
 | 歌单导入导出的原生文件对话框 | 只做了 `dialog:chooseDir` | `file:save/open` 需另加 IPC，属 S6 后续项 |
+| 人耳可听的播放确认 | **未做** | 验收期用户在看视频，全部播放证据在 `--mute-audio` 下采集；要外放确认需用户点头 |
+| NSIS 安装版 | 未产出 | 本轮只验 `build:dir`（win-unpacked）；`npm.cmd run build` 配置就绪且 `createDesktopShortcut=false` |
+| 全局歌词快捷键 | `CommandOrControl+Alt+L` 注册失败 | 提示「可能被其他应用占用」；应用内快捷键不受影响，未去抢别人的全局组合 |
+| 咪咕榜单详情 | 只做索引展示 | `getRankIndex` 只给 rankId，曲目接口未进主进程白名单；界面明写「曲目接口未接入，仅索引」，不给点不动的假卡片 |
 
 ## 七、提交历史
 
@@ -108,8 +116,9 @@ electron/        main.cjs + preload.cjs(白名单) + ipc/{index,s7,lyric,migu,mi
 22c91c8  S3 播放链路
 2502212  S4-S6（90 文件）
 2542bba  S7 本地曲库+离线下载（34 文件）
-d4fffa0  S8 设置中心+音质+EQ+主题+媒体键+账号+评论（39 文件）
-<待提交>  S9 归档 v1、生产打包与验收
+d4fffa0  S8 设置中心+音质+EQ+主题+媒体键+账号+评论（39 文件）  ← 附注标签 legacy-v1 指这里
+f642c25  S9 归档 v1、生产打包与 exe 验收（44 文件）
+dd15c5e  docs 最终验收报告 + 咪咕音源链路在 exe 上复测
 ```
 
 ## 八、接手时最该先看的文件
