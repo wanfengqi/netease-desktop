@@ -153,7 +153,14 @@ onUnmounted(() => {
         <Cover :src="player.song.album.picUrl" :size="46" :radius="6" />
         <span class="pb-meta">
           <span class="pb-title s3-truncate">{{ player.song.name }}</span>
-          <span class="pb-artist s3-truncate">{{ player.song.artistText || '未知歌手' }}</span>
+          <span class="pb-artist s3-truncate">
+            {{ player.song.artistText || '未知歌手' }}
+            <em
+              v-if="player.auditionSecs > 0"
+              class="pb-trial"
+              title="服务端只给到试听片段：登录有会员的网易云账号后即为整曲"
+            >试听 {{ player.auditionSecs }}s</em>
+          </span>
         </span>
       </button>
       <template v-else>
@@ -330,6 +337,18 @@ onUnmounted(() => {
   margin-top: 3px;
   font-size: 11px;
   color: var(--text-muted);
+}
+
+/* 试听片段角标：整曲时不出现，出现就说明"不是歌坏了，是只给了片段" */
+.pb-trial {
+  margin-left: 6px;
+  padding: 1px 5px;
+  border: 1px solid var(--app-border);
+  border-radius: 3px;
+  font-size: 10px;
+  font-style: normal;
+  color: var(--text-muted);
+  background: var(--panel-hover);
 }
 
 .pb-center {

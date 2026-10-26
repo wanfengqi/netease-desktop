@@ -67,6 +67,29 @@ const C = song(3, '晴天');
 
 const OK_URL = async () => ({ url: 'http://x/ok.mp3' });
 
+describe('Player — 试听片段对 UI 可见', () => {
+  it('取址给了 auditionMs 时快照透出秒数；整曲为 0', async () => {
+    const mk = (fetchUrl: () => Promise<{ url: string | null; auditionMs?: number }>) => {
+      const { el } = fakeElement();
+      const player = new Player({
+        engine: new AudioEngine({ element: el }),
+        resolveTimeoutMs: 0,
+        fetchUrl,
+      });
+      player.setQueue([A, B]);
+      return player;
+    };
+    const trial = mk(async () => ({ url: 'http://x/trial.mp3', auditionMs: 48000 }));
+    await trial.playAt(0);
+    expect(trial.snapshot.auditionSecs).toBe(48);
+
+    const full = mk(async () => ({ url: 'http://x/ok.mp3' }));
+    await full.playAt(0);
+    expect(full.snapshot.auditionSecs).toBe(0);
+  });
+});
+
+
 /** 造一个"能取到地址"的播放器 */
 function makePlayer(options: { toasts?: string[]; rng?: () => number } = {}) {
   const { el, fire } = fakeElement();

@@ -49,6 +49,8 @@ import { UrlResolver } from '../data/urlResolver';
 export interface SongUrlInfo {
   url: string | null;
   reason?: string;
+  /** >0 = 服务端只给了试听片段（毫秒）；整曲为 0 */
+  auditionMs?: number;
 }
 
 /** 取址实现（真实环境注入 repository，测试注入假数据） */
@@ -82,6 +84,8 @@ export interface PlayerSnapshot {
   readonly volume: number;
   readonly muted: boolean;
   readonly lastError: PlayErrorInfo | null;
+  /** 试听片段秒数；0 = 整曲 */
+  readonly auditionSecs: number;
 }
 
 /** 落盘结构：**不含索引**，用 key 定位（修旧 2.6） */
@@ -181,6 +185,9 @@ export class Player {
   /** 最近一次取址失败的原因，供"无版权/VIP"提示使用 */
   private lastUrlReason = '';
 
+  /** 最近一次取址给的试听片段毫秒数（0 = 整曲） */
+  private lastAuditionMs = 0;
+
   constructor(options: PlayerOptions) {
     this.engine = options.engine;
     this.resolver = options.resolver ?? new UrlResolver();
@@ -212,6 +219,7 @@ export class Player {
       volume: audio.volume,
       muted: audio.muted,
       lastError: this.lastError,
+      auditionSecs: this.lastAuditionMs > 0 ? Math.round(this.lastAuditionMs / 1000) : 0,
     };
   }
 
@@ -518,6 +526,7 @@ export class Player {
       urlFor: async (s) => {
         const info = await fetcher(s);
         this.lastUrlReason = info.reason ?? '';
+        this.lastAuditionMs = info.auditionMs ?? 0;
         return info.url;
       },
     });

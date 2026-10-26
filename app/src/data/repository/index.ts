@@ -13,6 +13,9 @@ export * from './types';
 import { NeteaseRepository } from './netease';
 import { MiguRepository } from './migu';
 
-/** 应用内共享实例；cookie 通过 setCookieProvider 注入，渲染层不自己持久化 */
+/**
+ * 应用内共享实例；cookie 通过 setCookieProvider 注入（装配点在 main.ts），
+ * 渲染层不自己持久化。忘了注入 = 所有网易云取址按未登录返回试听片段。
+ */
 export const netease = new NeteaseRepository();
 export const migu = new MiguRepository();

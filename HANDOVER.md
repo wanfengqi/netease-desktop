@@ -107,6 +107,7 @@ electron/        main.cjs + preload.cjs(白名单) + ipc/{index,s7,lyric,migu,mi
 | 歌单导入导出的原生文件对话框 | 只做了 `dialog:chooseDir` | `file:save/open` 需另加 IPC，属 S6 后续项 |
 | 人耳可听的播放确认 | **未做** | 验收期用户在看视频，全部播放证据在 `--mute-audio` 下采集；要外放确认需用户点头 |
 | NSIS 安装版 | 未产出 | 本轮只验 `build:dir`（win-unpacked）；`npm.cmd run build` 配置就绪且 `createDesktopShortcut=false` |
+| 网易云试听片段 | 已如实标注，不"修" | 无登录态/无权益时服务端只给 `freeTrialInfo`（实测 48 s）片段，客户端拿不到整曲；现在播放条显示「试听 Ns」角标说明这件事，不再假装是整曲 |
 | 全局歌词快捷键 | `CommandOrControl+Alt+L` 注册失败 | 提示「可能被其他应用占用」；应用内快捷键不受影响，未去抢别人的全局组合 |
 | 咪咕榜单详情 | 只做索引展示 | `getRankIndex` 只给 rankId，曲目接口未进主进程白名单；界面明写「曲目接口未接入，仅索引」，不给点不动的假卡片 |
 
@@ -119,6 +120,8 @@ electron/        main.cjs + preload.cjs(白名单) + ipc/{index,s7,lyric,migu,mi
 d4fffa0  S8 设置中心+音质+EQ+主题+媒体键+账号+评论（39 文件）  ← 附注标签 legacy-v1 指这里
 f642c25  S9 归档 v1、生产打包与 exe 验收（44 文件）
 dd15c5e  docs 最终验收报告 + 咪咕音源链路在 exe 上复测
+4f1f41d  docs 全量自审：与代码口径逐条对齐
+（本次）  fix 每日推荐只有 30 秒：登录态透传 + 试听片段可见 + 首页登录态自愈
 ```
 
 ## 八、接手时最该先看的文件

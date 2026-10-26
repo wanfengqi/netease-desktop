@@ -85,8 +85,22 @@ function defaultBridge(): NeteaseBridge {
 export class NeteaseRepository {
   private readonly options: NeteaseRepoOptions;
 
+  /** 构造之后注入的 cookie 读取通道（共享单例走这条） */
+  private cookieProvider?: () => string;
+
   constructor(options: NeteaseRepoOptions = {}) {
     this.options = options;
+  }
+
+  /**
+   * 迟一步注入登录态读取通道。
+   *
+   * 共享单例必须用它：登录态由 stores/config 持久化，而单例在模块加载时就构造好了，
+   * 只靠构造参数会永远拿到空 cookie —— 网易云于是按**未登录**给出试听片段
+   * （实测 30~48s），整曲拿不到。这条通道是实时读取，不缓存值。
+   */
+  setCookieProvider(get: () => string): void {
+    this.cookieProvider = get;
   }
 
   private bridge(): NeteaseBridge {
@@ -94,7 +108,7 @@ export class NeteaseRepository {
   }
 
   private cookie(): string {
-    return this.options.getCookie?.() ?? '';
+    return this.cookieProvider?.() ?? this.options.getCookie?.() ?? '';
   }
 
   /** 统一的请求入口：超时 + 重试 + 业务码校验 */
@@ -222,12 +236,25 @@ export class NeteaseRepository {
    */
   async songUrl(id: string | number, level = 'standard'): Promise<PlayUrl> {
     const body = (await this.req('/song/url/v1', { id, level })) as {
-      data?: { url?: string | null; br?: number; code?: number; fee?: number; freeTrialInfo?: unknown }[];
+      data?: {
+        url?: string | null;
+        br?: number;
+        code?: number;
+        fee?: number;
+        /** 未登录/无会员时的试听区间：start/end 单位是**秒**（实测 end=48 → 流 48.2s） */
+        freeTrialInfo?: { start?: number; end?: number; fragmentType?: number } | null;
+      }[];
     };
     const first = body.data?.[0];
     if (!first) return { url: null, br: 0, auditionMs: 0, level, reason: '响应无 data' };
     const url = first.url ?? null;
-    const auditionMs = first.freeTrialInfo ? 30000 : 0;
+    const trial = first.freeTrialInfo;
+    // 有区间按区间算；只有标记没区间时保守按 30s（旧写死值，别再扩散成"真实长度"）
+    const auditionMs = trial
+      ? typeof trial.end === 'number'
+        ? Math.max(0, Math.round((trial.end - (trial.start ?? 0)) * 1000))
+        : 30000
+      : 0;
     return {
       url,
       br: first.br ?? 0,

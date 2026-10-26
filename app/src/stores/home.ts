@@ -16,7 +16,7 @@
  *    这样"接口失败时降级"能被真的断言，而不是靠 mock 网络。
  */
 import { defineStore } from 'pinia';
-import { computed, ref, type Ref } from 'vue';
+import { computed, ref, watch, type Ref } from 'vue';
 import type { Song, SongSource } from '../data/normalize';
 import { NeteaseRepository } from '../data/repository/netease';
 import { migu, netease } from '../data/repository/index';
@@ -181,9 +181,14 @@ export const useHomeStore = defineStore('home', () => {
     await fill(newSongs, () => source.newSongs(12));
   }
 
-  /** 每日推荐：无凭据直接落 login-required，不发请求（省一次必然失败的往返） */
+  /**
+   * 每日推荐：是否"需要登录"由数据源判定（netease 的 recommendSongs 在 !cookie 时直接抛，
+   * 不发 HTTP；咪咕恒 unsupported）—— store 只做状态归类，不越权替音源下结论。
+   */
   async function loadDaily(force = false): Promise<void> {
     if (!force && (daily.value.status === 'ready' || daily.value.status === 'loading')) return;
+    // 已在请求中就不再并发第二发：force 是给"失败之后重试"用的，不是给登录态连翻两次用的
+    if (daily.value.status === 'loading') return;
     const input: DailyInput = {
       source: sourceOf.value,
       cookie: config.cookie,
@@ -200,6 +205,16 @@ export const useHomeStore = defineStore('home', () => {
       daily.value = { status: picked.status, items: [], error: picked.error };
     }
   }
+
+  /**
+   * 登录态就绪通常**晚于**首页首拉：config 要从磁盘异步装载，扫码登录更是运行中途才写入。
+   * 少了这个 watch，已登录用户会一直看到"每日推荐需要登录"（实测 exe 里就卡在这个状态）。
+   * 反向也要成立：退出登录后不能继续显示上一次的推荐曲目。
+   */
+  watch(loggedIn, (now, prev) => {
+    if (now && !prev) void loadDaily(true);
+    else if (!now && prev) daily.value = { status: 'login-required', items: [], error: '网易云每日推荐需要登录后使用' };
+  });
 
   async function loadToplists(force = false): Promise<void> {
     if (!force && (toplists.value.status === 'ready' || toplists.value.status === 'loading')) return;

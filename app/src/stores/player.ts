@@ -34,6 +34,7 @@ function snapshotFields(snapshot: PlayerSnapshot) {
     volume: snapshot.volume,
     muted: snapshot.muted,
     lastError: snapshot.lastError,
+    auditionSecs: snapshot.auditionSecs,
     queueSongs: snapshot.queue.items.slice(),
     queueIndex: snapshot.queue.index,
     history: snapshot.queue.history.slice(),
@@ -56,6 +57,8 @@ export const usePlayerStore = defineStore('player', () => {
   const volume = ref(0.8);
   const muted = ref(false);
   const lastError = ref<PlayerSnapshot['lastError']>(null);
+  /** >0 = 当前播的是试听片段（秒），UI 要明确标出来，不能让用户以为歌坏了 */
+  const auditionSecs = ref(0);
   const equalizerState = ref<EqualizerSnapshot>({ enabled: false, ready: false, active: false, broken: false, error: '', retryCount: 0, gains: [] });
 
   const queueSongs = ref<Song[]>([]);
@@ -101,6 +104,7 @@ export const usePlayerStore = defineStore('player', () => {
     volume.value = fields.volume;
     muted.value = fields.muted;
     lastError.value = fields.lastError;
+    auditionSecs.value = fields.auditionSecs;
     queueSongs.value = fields.queueSongs;
     queueIndex.value = fields.queueIndex;
     history.value = fields.history;
@@ -304,6 +308,7 @@ export const usePlayerStore = defineStore('player', () => {
     volume,
     muted,
     lastError,
+    auditionSecs,
     equalizerState,
     updateEqualizer,
     queueSongs,
