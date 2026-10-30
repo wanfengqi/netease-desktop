@@ -31,8 +31,12 @@ try {
   # PowerShell 里逗号结合比 + 更紧：'-c', 'http.proxy=' + $Proxy 会被解析成 ('-c','http.proxy=') + $Proxy，多出一个游离参数被 git 当成子命令。每段拼接必须自带括号。
   $gitArgs = @('-c', ('http.extraHeader=Authorization: Basic ' + $b64), '-c', ('http.proxy=' + $Proxy), '-c', ('https.proxy=' + $Proxy), '-c', 'credential.helper=')
   Write-Host '[3/4] 推送 master + legacy-v1 标签 ...'
-  & git @gitArgs push $url master --follow-tags 2>&1 | ForEach-Object { Write-Host ('    ' + $_) }
-  if ($LASTEXITCODE -ne 0) { throw ('git push 失败，exit=' + $LASTEXITCODE) }
+  # git 把 'To https://...' 写在 stderr；PS 在 ErrorActionPreference=Stop 下会把原生命令的 stderr 升格成错误记录并抛 NativeCommandError（实测脚本在 push 已成功的情况下中断于 :34）。故这一段临时降级为 SilentlyContinue，判成败只看 $LASTEXITCODE。
+  $eapSave = $ErrorActionPreference; $ErrorActionPreference = 'SilentlyContinue'
+  & git @gitArgs push $url master --follow-tags 2>&1 | ForEach-Object { Write-Host ('    ' + ($_ | Out-String).Trim()) }
+  $pushCode = $LASTEXITCODE
+  $ErrorActionPreference = $eapSave
+  if ($pushCode -ne 0) { throw ('git push 失败，exit=' + $pushCode) }
   $local = (git rev-parse master).Trim()
   $remote = (& git @gitArgs ls-remote $url refs/heads/master refs/tags/legacy-v1) -join "`n"
   Write-Host '[4/4] 远端实测:'
