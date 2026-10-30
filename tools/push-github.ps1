@@ -28,7 +28,8 @@ try {
     if ($code -eq 422) { Write-Host '[2/4] 同名仓库已存在，直接推送' } else { throw }
   }
   $url = 'https://github.com/' + $who + '/' + $RepoName + '.git'
-  $gitArgs = @('-c', ('http.extraHeader=Authorization: Basic ' + $b64), '-c', 'http.proxy=' + $Proxy, '-c', 'https.proxy=' + $Proxy, '-c', 'credential.helper=')
+  # PowerShell 里逗号结合比 + 更紧：'-c', 'http.proxy=' + $Proxy 会被解析成 ('-c','http.proxy=') + $Proxy，多出一个游离参数被 git 当成子命令。每段拼接必须自带括号。
+  $gitArgs = @('-c', ('http.extraHeader=Authorization: Basic ' + $b64), '-c', ('http.proxy=' + $Proxy), '-c', ('https.proxy=' + $Proxy), '-c', 'credential.helper=')
   Write-Host '[3/4] 推送 master + legacy-v1 标签 ...'
   & git @gitArgs push $url master --follow-tags 2>&1 | ForEach-Object { Write-Host ('    ' + $_) }
   if ($LASTEXITCODE -ne 0) { throw ('git push 失败，exit=' + $LASTEXITCODE) }
